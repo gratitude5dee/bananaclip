@@ -190,9 +190,9 @@ serve(async (req) => {
       // Build prompt
       const generationPrompt = createGenerationPrompt(description);
 
-      // Gemini client (use 2.0 Flash for image generation)
+      // Gemini client (use 2.5 Flash Image Preview for image generation)
       const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
-      const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash-exp" });
+      const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash-image-preview" });
 
       // Prepare inline image parts
       const imageParts = (files as File[]).map((f, i) => ({
