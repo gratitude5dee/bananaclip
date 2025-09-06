@@ -17,6 +17,7 @@ import { useAdBanana } from '@/hooks/useAdBanana';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { DrawingCanvas } from '@/components/ui/drawing-canvas';
 import { ImageUploadGrid } from '@/components/ui/image-upload-grid';
+import { generateImagesFromCanvas } from '@/services/geminiService';
 
 interface AdBananaStudioProps {
   projectState: ProjectState;
@@ -39,6 +40,8 @@ export function AdBananaStudio({ projectState, onProgress, onError }: AdBananaSt
   // Visual assets state
   const [canvasData, setCanvasData] = useState<string>('');
   const [referenceImages, setReferenceImages] = useState<(File | null)[]>([]);
+  const [generatedImages, setGeneratedImages] = useState<string[]>([]);
+  const [isGeneratingImages, setIsGeneratingImages] = useState(false);
   
   // Generation settings
   const [brief, setBrief] = useState<Partial<AdBrief>>({
@@ -70,8 +73,25 @@ export function AdBananaStudio({ projectState, onProgress, onError }: AdBananaSt
   };
 
   const handleGenerate = async () => {
-    // Create a brief from scene description
-    const contextDescription = `
+    try {
+      // First generate images using Gemini NanoBanana API
+      setIsGeneratingImages(true);
+      console.log('Generating images with Gemini NanoBanana...');
+      
+      const images = await generateImagesFromCanvas(
+        canvasData, 
+        referenceImages, 
+        sceneDescription, 
+        4
+      );
+      
+      setGeneratedImages(images);
+      console.log('Generated images:', images.length);
+      
+      setIsGeneratingImages(false);
+      
+      // Then generate the ad package as before
+      const contextDescription = `
 Scene Setting: ${sceneDescription.setting}
 Subjects: ${sceneDescription.subjects}
 Composition: ${sceneDescription.composition}
@@ -83,22 +103,28 @@ Mood: ${sceneDescription.mood}
 Visual Assets:
 - Hand-drawn concept sketch: ${canvasData ? 'Included' : 'None'}
 - Reference images: ${referenceImages.filter(img => img).length} uploaded
-    `.trim();
+- Generated AI images: ${images.length} created with Gemini NanoBanana
+      `.trim();
 
-    // Use scene description as the brief context with minimal required fields
-    const fullBrief: AdBrief = {
-      brand: sceneDescription.setting || 'Creative Brief',
-      product: sceneDescription.subjects || 'Visual Concept',
-      valueProp: sceneDescription.mood || 'Engaging Creative',
-      audience: 'Target Audience',
-      objective: brief.objective || 'awareness',
-      platform: brief.platform || 'tiktok',
-      durationSec: brief.durationSec || 15,
-      briefContext: contextDescription,
-      sensitiveClaims: brief.sensitiveClaims || false,
-    };
+      // Use scene description as the brief context with minimal required fields
+      const fullBrief: AdBrief = {
+        brand: sceneDescription.setting || 'Creative Brief',
+        product: sceneDescription.subjects || 'Visual Concept',
+        valueProp: sceneDescription.mood || 'Engaging Creative',
+        audience: 'Target Audience',
+        objective: brief.objective || 'awareness',
+        platform: brief.platform || 'tiktok',
+        durationSec: brief.durationSec || 15,
+        briefContext: contextDescription,
+        sensitiveClaims: brief.sensitiveClaims || false,
+      };
 
-    await generateAdPackage({ brief: fullBrief, variantCount });
+      await generateAdPackage({ brief: fullBrief, variantCount });
+    } catch (error) {
+      console.error('Error during generation:', error);
+      setIsGeneratingImages(false);
+      onError(error instanceof Error ? error.message : 'Failed to generate content');
+    }
   };
 
   const handleExportJSON = () => {
@@ -131,7 +157,7 @@ Visual Assets:
             </div>
             <div>
               <h1 className="text-2xl font-display text-foreground">AdBanana</h1>
-              <p className="text-sm text-muted-foreground">Creative Brief Studio</p>
+              <p className="text-sm text-muted-foreground">Creative Brief Studio • Gemini NanoBanana</p>
             </div>
           </div>
         </div>
@@ -359,12 +385,16 @@ Visual Assets:
             </Button>
             <Button 
               onClick={handleGenerate}
-              disabled={isGenerating || !sceneDescription.setting || !sceneDescription.subjects}
+              disabled={isGenerating || isGeneratingImages || !sceneDescription.setting || !sceneDescription.subjects}
               className="bg-gradient-to-r from-primary to-accent hover:shadow-lg hover:shadow-primary/25 transition-all duration-300"
               size="lg"
             >
               <Sparkles className="mr-2 h-4 w-4" />
-              {isGenerating ? 'Generating Creative...' : 'Generate Creative'}
+              {isGeneratingImages 
+                ? 'Generating AI Images...' 
+                : isGenerating 
+                  ? 'Creating Ad Package...' 
+                  : 'Generate Creative with Gemini NanoBanana'}
             </Button>
           </div>
         </CardContent>
@@ -397,12 +427,61 @@ Visual Assets:
           </CardHeader>
           <CardContent>
             <Tabs value={activeResultTab} onValueChange={setActiveResultTab}>
-              <TabsList className="grid w-full grid-cols-4 bg-background/50">
+              <TabsList className="grid w-full grid-cols-5 bg-background/50">
+                <TabsTrigger value="images">AI Images ({generatedImages.length})</TabsTrigger>
                 <TabsTrigger value="script">Base Script</TabsTrigger>
                 <TabsTrigger value="variants">Variants ({result.variants.length})</TabsTrigger>
                 <TabsTrigger value="captions">Captions</TabsTrigger>
                 <TabsTrigger value="compliance">Compliance</TabsTrigger>
               </TabsList>
+
+              <TabsContent value="images" className="space-y-4">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg flex items-center gap-2">
+                      <Camera className="h-5 w-5" />
+                      Generated Images - Gemini NanoBanana
+                    </CardTitle>
+                    <CardDescription>
+                      AI-generated images based on your canvas sketch and reference images
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    {generatedImages.length > 0 ? (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {generatedImages.map((image, index) => (
+                          <Card key={index} className="bg-background/50">
+                            <CardHeader>
+                              <CardTitle className="text-sm">Variation {index + 1}</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                              <div className="bg-muted/30 p-4 rounded-lg">
+                                <p className="text-sm text-muted-foreground">
+                                  {image}
+                                </p>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => copyToClipboard(image)}
+                                  className="mt-2"
+                                >
+                                  <Copy className="h-4 w-4 mr-2" />
+                                  Copy Description
+                                </Button>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-center py-8 text-muted-foreground">
+                        <Camera className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                        <p>No images generated yet. Click "Generate Creative" to create AI images.</p>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </TabsContent>
 
               <TabsContent value="script" className="space-y-4">
                 <Card>
