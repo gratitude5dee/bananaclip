@@ -1,12 +1,15 @@
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { uploadGeneratedVideo } from '@/lib/storage';
 
 interface GeneratedVideo {
   id: string;
   url: string;
   prompt: string;
   imageId: string;
+  storageUrl?: string;
+  storagePath?: string;
 }
 
 interface BatchVideoProgress {
@@ -59,6 +62,20 @@ export const useBatchVideoGeneration = () => {
             prompt,
             imageId: image.id
           };
+
+          // Try to upload to storage
+          try {
+            const storageRecord = await uploadGeneratedVideo(
+              data.video.url,
+              `video_${image.id}.mp4`,
+              prompt
+            );
+            generatedVideo.storageUrl = storageRecord.storage_url;
+            generatedVideo.storagePath = storageRecord.storage_path;
+          } catch (storageError) {
+            console.warn('Failed to upload video to storage:', storageError);
+            // Continue without storage - video still has external URL
+          }
 
           // Update progress and add to results
           setProgress(prev => ({

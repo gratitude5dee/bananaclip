@@ -49,6 +49,51 @@ export type Database = {
           },
         ]
       }
+      generated_media: {
+        Row: {
+          created_at: string
+          file_size: number | null
+          generation_params: Json | null
+          id: string
+          media_type: string
+          mime_type: string | null
+          original_prompt: string | null
+          project_id: string | null
+          storage_path: string
+          storage_url: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          file_size?: number | null
+          generation_params?: Json | null
+          id?: string
+          media_type: string
+          mime_type?: string | null
+          original_prompt?: string | null
+          project_id?: string | null
+          storage_path: string
+          storage_url?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          file_size?: number | null
+          generation_params?: Json | null
+          id?: string
+          media_type?: string
+          mime_type?: string | null
+          original_prompt?: string | null
+          project_id?: string | null
+          storage_path?: string
+          storage_url?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       processing_jobs: {
         Row: {
           created_at: string
