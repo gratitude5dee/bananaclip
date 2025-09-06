@@ -6,8 +6,7 @@
 //   GET    /check-config   -> check Gemini key present
 //   POST   /generate-images -> main endpoint (multipart/form-data)
 
-import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
-import { Status } from "https://deno.land/std@0.224.0/http/http_status.ts";
+import { serve } from "https://deno.land/std@0.208.0/http/server.ts";
 import { GoogleGenerativeAI } from "npm:@google/generative-ai@0.21.0";
 
 // ---- Config / CORS ----------------------------------------------------------
@@ -120,7 +119,7 @@ serve(async (req) => {
         return errorResponse(
           "API configuration error",
           "Gemini API key not configured. Please set GEMINI_API_KEY as a Supabase secret.",
-          Status.InternalServerError,
+          500,
         );
       }
 
@@ -142,14 +141,14 @@ serve(async (req) => {
         return errorResponse(
           "Invalid form-data",
           "One or more required files are missing or invalid. Expecting 6 files: doodle_image + location_image_1..5.",
-          Status.BadRequest,
+          400,
         );
       }
       if (typeof descriptionStr !== "string") {
         return errorResponse(
           "Invalid description format",
           "`description` must be a JSON string.",
-          Status.BadRequest,
+          400,
         );
       }
 
@@ -161,7 +160,7 @@ serve(async (req) => {
         return errorResponse(
           "Invalid description format",
           `Description must be valid JSON: ${(e as Error).message}`,
-          Status.BadRequest,
+          400,
         );
       }
 
@@ -179,7 +178,7 @@ serve(async (req) => {
         return errorResponse(
           "Description validation error",
           `Missing required fields: ${missing.join(", ")}`,
-          Status.BadRequest,
+          400,
         );
       }
 
@@ -274,7 +273,7 @@ serve(async (req) => {
         return errorResponse(
           "Image generation failed",
           "Gemini 2.0 Flash did not generate any images. This may be due to content policy restrictions or model limitations. Please try adjusting your prompt or images.",
-          Status.InternalServerError,
+          500,
         );
       }
 
@@ -292,10 +291,10 @@ serve(async (req) => {
     // No route matched
     return jsonResponse(
       { success: false, error: "Not Found", details: `No route for ${req.method} ${path}` },
-      Status.NotFound,
+      404,
     );
   } catch (e) {
     console.error("Unhandled error:", e);
-    return errorResponse("Internal server error", (e as Error).message, Status.InternalServerError);
+    return errorResponse("Internal server error", (e as Error).message, 500);
   }
 });
