@@ -47,10 +47,12 @@ export const uploadGeneratedImage = async (
 
     if (uploadError) throw uploadError;
 
-    // Get public URL
-    const { data: urlData } = supabase.storage
+    // Create signed URL (24 hour expiry)
+    const { data: urlData, error: urlError } = await supabase.storage
       .from('generated-images')
-      .getPublicUrl(storagePath);
+      .createSignedUrl(storagePath, 86400);
+
+    if (urlError) throw urlError;
 
     // Save metadata to database
     const mediaRecord = {
@@ -58,7 +60,7 @@ export const uploadGeneratedImage = async (
       project_id: projectId,
       media_type: 'image' as const,
       storage_path: storagePath,
-      storage_url: urlData.publicUrl,
+      storage_url: urlData.signedUrl,
       original_prompt: prompt,
       file_size: blob.size,
       mime_type: 'image/png'
@@ -110,10 +112,12 @@ export const uploadGeneratedVideo = async (
 
     if (uploadError) throw uploadError;
 
-    // Get public URL
-    const { data: urlData } = supabase.storage
+    // Create signed URL (24 hour expiry)
+    const { data: urlData, error: urlError } = await supabase.storage
       .from('generated-videos')
-      .getPublicUrl(storagePath);
+      .createSignedUrl(storagePath, 86400);
+
+    if (urlError) throw urlError;
 
     // Save metadata to database
     const mediaRecord = {
@@ -121,7 +125,7 @@ export const uploadGeneratedVideo = async (
       project_id: projectId,
       media_type: 'video' as const,
       storage_path: storagePath,
-      storage_url: urlData.publicUrl,
+      storage_url: urlData.signedUrl,
       original_prompt: prompt,
       file_size: blob.size,
       mime_type: 'video/mp4'
@@ -171,6 +175,25 @@ export const getUserGeneratedMedia = async (
     return (data || []) as GeneratedMediaRecord[];
   } catch (error) {
     console.error('Error fetching generated media:', error);
+    throw error;
+  }
+};
+
+// Create signed URL for existing media
+export const createSignedUrlForMedia = async (
+  mediaType: 'image' | 'video',
+  storagePath: string
+): Promise<string> => {
+  try {
+    const bucketName = mediaType === 'image' ? 'generated-images' : 'generated-videos';
+    const { data, error } = await supabase.storage
+      .from(bucketName)
+      .createSignedUrl(storagePath, 86400); // 24 hours
+
+    if (error) throw error;
+    return data.signedUrl;
+  } catch (error) {
+    console.error('Error creating signed URL:', error);
     throw error;
   }
 };
