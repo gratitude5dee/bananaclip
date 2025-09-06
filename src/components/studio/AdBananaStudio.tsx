@@ -378,51 +378,73 @@ Visual Assets:
               </TabsList>
 
               <TabsContent value="images" className="space-y-4">
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-lg flex items-center gap-2">
-                      <Camera className="h-5 w-5" />
-                      Generated Images - Gemini NanoBanana
-                    </CardTitle>
-                    <CardDescription>
-                      AI-generated images based on your canvas sketch and reference images
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    {generatedImages.length > 0 ? (
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {generatedImages.map((image, index) => (
-                          <Card key={index} className="bg-background/50">
-                            <CardHeader>
-                              <CardTitle className="text-sm">Variation {index + 1}</CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                              <div className="bg-muted/30 p-4 rounded-lg">
-                                <p className="text-sm text-muted-foreground">
-                                  {image}
-                                </p>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => copyToClipboard(image)}
-                                  className="mt-2"
-                                >
-                                  <Copy className="h-4 w-4 mr-2" />
-                                  Copy Description
-                                </Button>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  {generatedImages.length > 0 ? (
+                    generatedImages.map((imageDescription, index) => (
+                      <Card key={index} className="bg-card/50 backdrop-blur-sm border border-border/50">
+                        <CardHeader className="pb-3">
+                          <div className="flex items-center justify-between">
+                            <CardTitle className="text-base flex items-center gap-2">
+                              <div className="w-8 h-8 bg-gradient-to-br from-primary to-accent rounded-lg flex items-center justify-center text-sm">
+                                {index + 1}
                               </div>
-                            </CardContent>
-                          </Card>
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="text-center py-8 text-muted-foreground">
-                        <Camera className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                        <p>No images generated yet. Click "Generate Creative" to create AI images.</p>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
+                              Creative Concept {index + 1}
+                            </CardTitle>
+                            <Badge variant="secondary" className="text-xs">
+                              Gemini Generated
+                            </Badge>
+                          </div>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                          <div className="bg-gradient-to-br from-muted/30 to-muted/10 border border-border/30 rounded-xl p-4">
+                            <p className="text-sm leading-relaxed text-foreground/90">
+                              {imageDescription}
+                            </p>
+                          </div>
+                          <div className="flex gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => copyToClipboard(imageDescription)}
+                              className="flex-1 border-border/50 hover:bg-background/80"
+                            >
+                              <Copy className="h-4 w-4 mr-2" />
+                              Copy Description
+                            </Button>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="border-border/50 hover:bg-background/80"
+                                >
+                                  <Info className="h-4 w-4" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p className="text-xs">AI-generated creative concept for advertising imagery</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))
+                  ) : (
+                    <div className="col-span-full">
+                      <Card className="bg-card/30 border-dashed border-border/50">
+                        <CardContent className="flex flex-col items-center justify-center py-12">
+                          <div className="w-16 h-16 bg-gradient-to-br from-primary/20 to-accent/20 rounded-2xl flex items-center justify-center mb-4">
+                            <Camera className="h-8 w-8 text-primary/60" />
+                          </div>
+                          <h3 className="font-medium text-foreground mb-2">No AI Images Generated Yet</h3>
+                          <p className="text-sm text-muted-foreground text-center max-w-md">
+                            Fill out the scene description and click "Generate Creative" to create AI-powered image concepts with Gemini NanoBanana.
+                          </p>
+                        </CardContent>
+                      </Card>
+                    </div>
+                  )}
+                </div>
               </TabsContent>
 
               <TabsContent value="script" className="space-y-4">
