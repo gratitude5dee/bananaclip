@@ -114,7 +114,7 @@ const Index = () => {
                   },
                   {
                     id: 'long-to-shorts',
-                    title: 'Long Video to Shorts',
+                    title: 'BananaClipper',
                     description: 'Transform long-form content into engaging shorts',
                     icon: '✂️',
                     popular: true,
