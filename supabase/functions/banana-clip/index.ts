@@ -202,29 +202,31 @@ serve(async (req) => {
         },
       }));
 
-      // Generate 5 actual images using Gemini 2.0 Flash
+      // Generate 5 actual images using Gemini 2.5 Flash Image Preview
       const generated: Array<{ id: string; base64_data: string; filename: string }> = [];
 
       for (let i = 0; i < 5; i++) {
         const variationPrompt =
           `You are Nano Banana, an advanced AI image generator. Based on the provided ` +
-          `doodle sketch and reference images, generate a photorealistic image that matches ` +
+          `doodle sketch and reference image, generate a photorealistic image that matches ` +
           `the detailed brief below.\n\n` +
           `${generationPrompt}\n\n` +
           `Reference Images Context:\n` +
           `- Image 1 (Doodle): User's concept sketch showing layout/composition\n` +
-          `- Images 2-6 (References): Location/product references for style and atmosphere\n\n` +
+          `- Image 2 (Reference): Location/product reference for style and atmosphere\n\n` +
           `Instructions:\n` +
           `1) Use the doodle as the composition guide.\n` +
-          `2) Incorporate color, lighting, and stylistic cues from the reference images.\n` +
+          `2) Incorporate color, lighting, and stylistic cues from the reference image.\n` +
           `3) Generate a high-quality photorealistic image for VARIATION ${i + 1}.\n` +
           `4) ${VARIATION_FOCUS[i]}\n` +
           `5) Return the image in high resolution.\n\n` +
           `Generate the image now.`;
 
         try {
-          // Use Gemini 2.0 Flash image generation capabilities
-          const parts: any[] = [{ text: variationPrompt }, ...imageParts];
+          // Use Gemini 2.5 Flash Image Preview with sketch + one specific reference image
+          const sketchPart = imageParts[0]; // Always use the doodle/sketch
+          const referencePart = imageParts[i + 1]; // Use specific reference for this variation (i+1 because imageParts[0] is sketch)
+          const parts: any[] = [{ text: variationPrompt }, sketchPart, referencePart];
           
           const result = await model.generateContent({
             contents: [{ parts }],
