@@ -51,7 +51,7 @@ export const generateImagesFromCanvas = async (
   canvasData: string,
   uploadedImages: (File | null)[],
   sceneDescription: any,
-  count: number = 4
+  count: number = 2
 ): Promise<string[]> => {
   try {
     // Prepare all images (canvas + uploaded)
@@ -83,12 +83,38 @@ export const generateImagesFromCanvas = async (
     });
 
     if (error) {
-      throw new Error(error.message);
+      console.error('Supabase function error:', error);
+      throw new Error(error.message || 'Failed to call image generation service');
+    }
+
+    if (!data.success) {
+      console.error('Image generation failed:', data.error);
+      
+      // Handle specific error types
+      const errorMessage = data.error || 'Unknown error occurred';
+      if (errorMessage.includes('quota') || errorMessage.includes('429')) {
+        throw new Error('Gemini API quota exceeded. Please wait a few minutes and try again, or upgrade your API plan.');
+      }
+      if (errorMessage.includes('GEMINI_API_KEY')) {
+        throw new Error('Gemini API key not configured. Please contact support.');
+      }
+      
+      throw new Error(`Image generation failed: ${errorMessage}`);
     }
 
     return data.generatedImages || [];
   } catch (error) {
     console.error('Error generating images:', error);
-    throw new Error('Failed to generate images with Gemini NanoBanana');
+    
+    // Re-throw with preserved message if it's already a helpful error
+    if (error instanceof Error && (
+      error.message.includes('quota') || 
+      error.message.includes('API key') ||
+      error.message.includes('wait a few minutes')
+    )) {
+      throw error;
+    }
+    
+    throw new Error('Failed to generate images with Gemini NanoBanana. Please try again later.');
   }
 };

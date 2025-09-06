@@ -42,6 +42,8 @@ export function AdBananaStudio({ projectState, onProgress, onError }: AdBananaSt
   const [referenceImages, setReferenceImages] = useState<(File | null)[]>([]);
   const [generatedImages, setGeneratedImages] = useState<string[]>([]);
   const [isGeneratingImages, setIsGeneratingImages] = useState(false);
+  const [lastGenerationTime, setLastGenerationTime] = useState(0);
+  const [generationError, setGenerationError] = useState<string | null>(null);
   
   // Generation settings
   const [brief, setBrief] = useState<Partial<AdBrief>>({
@@ -73,7 +75,21 @@ export function AdBananaStudio({ projectState, onProgress, onError }: AdBananaSt
   };
 
   const handleGenerate = async () => {
+    // Rate limiting: prevent rapid API calls  
+    const now = Date.now();
+    const timeSinceLastCall = now - lastGenerationTime;
+    const minInterval = 10000; // 10 seconds between calls
+    
+    if (timeSinceLastCall < minInterval) {
+      const waitTime = Math.ceil((minInterval - timeSinceLastCall) / 1000);
+      onError?.(`Please wait ${waitTime} seconds before generating again.`);
+      return;
+    }
+    
     try {
+      setGenerationError(null);
+      setLastGenerationTime(now);
+      
       // First generate images using Gemini NanoBanana API
       setIsGeneratingImages(true);
       console.log('Generating images with Gemini NanoBanana...');
@@ -82,7 +98,7 @@ export function AdBananaStudio({ projectState, onProgress, onError }: AdBananaSt
         canvasData, 
         referenceImages, 
         sceneDescription, 
-        4
+        2 // Reduced from 4 to save quota
       );
       
       setGeneratedImages(images);
@@ -122,8 +138,10 @@ Visual Assets:
       await generateAdPackage({ brief: fullBrief, variantCount });
     } catch (error) {
       console.error('Error during generation:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to generate content';
+      setGenerationError(errorMessage);
       setIsGeneratingImages(false);
-      onError(error instanceof Error ? error.message : 'Failed to generate content');
+      onError(errorMessage);
     }
   };
 

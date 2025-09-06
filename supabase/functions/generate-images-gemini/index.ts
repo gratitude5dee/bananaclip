@@ -18,7 +18,7 @@ serve(async (req) => {
       throw new Error('GEMINI_API_KEY not configured');
     }
 
-    const { images, sceneDescription, count = 4 } = await req.json();
+    const { images, sceneDescription, count = 2 } = await req.json();
     
     if (!images || !Array.isArray(images) || images.length === 0) {
       throw new Error('At least one image is required');
@@ -53,42 +53,84 @@ serve(async (req) => {
 
     const generatedImages: string[] = [];
 
+    // Retry function with exponential backoff
+    const retryWithBackoff = async (fn: () => Promise<Response>, retries = 3): Promise<Response> => {
+      for (let attempt = 0; attempt < retries; attempt++) {
+        try {
+          const response = await fn();
+          if (response.ok) return response;
+          
+          if (response.status === 429) {
+            const waitTime = Math.pow(2, attempt) * 1000; // Exponential backoff
+            console.log(`Rate limited, waiting ${waitTime}ms before retry ${attempt + 1}/${retries}`);
+            await new Promise(resolve => setTimeout(resolve, waitTime));
+            continue;
+          }
+          
+          return response; // Return non-429 errors immediately
+        } catch (error) {
+          if (attempt === retries - 1) throw error;
+          const waitTime = Math.pow(2, attempt) * 1000;
+          console.log(`Request failed, retrying in ${waitTime}ms: ${error.message}`);
+          await new Promise(resolve => setTimeout(resolve, waitTime));
+        }
+      }
+      throw new Error('Max retries exceeded');
+    };
+
     // Generate images one by one (Gemini doesn't support batch generation)
     for (let i = 0; i < count; i++) {
       console.log(`Generating image ${i + 1}/${count}`);
       
-      const response = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent?key=${geminiApiKey}`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            contents: [
-              {
-                parts: [
-                  {
-                    text: `${prompt} Generate variation ${i + 1}: Focus on a unique creative angle while maintaining the core concept.`
-                  },
-                  ...imageParts
-                ]
+      const response = await retryWithBackoff(() => 
+        fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiApiKey}`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              contents: [
+                {
+                  parts: [
+                    {
+                      text: `${prompt} Generate variation ${i + 1}: Focus on a unique creative angle while maintaining the core concept.`
+                    },
+                    ...imageParts
+                  ]
+                }
+              ],
+              generationConfig: {
+                temperature: 0.8 + (i * 0.1), // Vary temperature for different results
+                topK: 40,
+                topP: 0.95,
+                maxOutputTokens: 2048, // Reduced to save quota
               }
-            ],
-            generationConfig: {
-              temperature: 0.8 + (i * 0.1), // Vary temperature for different results
-              topK: 40,
-              topP: 0.95,
-              maxOutputTokens: 4096,
-            }
-          }),
-        }
+            }),
+          }
+        )
       );
 
       if (!response.ok) {
         const errorText = await response.text();
         console.error(`Gemini API error for image ${i + 1}:`, errorText);
-        throw new Error(`Gemini API request failed: ${response.status} ${errorText}`);
+        
+        // Parse specific error types
+        let errorMessage = `API request failed (${response.status})`;
+        try {
+          const errorData = JSON.parse(errorText);
+          if (errorData.error?.message) {
+            errorMessage = errorData.error.message;
+            if (response.status === 429) {
+              errorMessage = 'Gemini API quota exceeded. Please wait a few minutes and try again.';
+            }
+          }
+        } catch {
+          // Keep generic message if parsing fails
+        }
+        
+        throw new Error(errorMessage);
       }
 
       const data = await response.json();
