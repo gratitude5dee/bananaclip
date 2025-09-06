@@ -90,9 +90,9 @@ export function AdBananaStudio({ projectState, onProgress, onError }: AdBananaSt
       setGenerationError(null);
       setLastGenerationTime(now);
       
-      // First generate actual images using Gemini 2.0 Flash via Banana Clip API
+      // First generate actual images using Gemini 2.5 Flash Image Preview via Banana Clip API
       setIsGeneratingImages(true);
-      console.log('Generating images with Gemini 2.0 Flash...');
+      console.log('Generating images with Gemini 2.5 Flash Image Preview...');
       
       const images = await generateActualImagesFromCanvas(
         canvasData, 
@@ -390,7 +390,7 @@ Visual Assets:
                               Creative Image {index + 1}
                             </CardTitle>
                             <Badge variant="secondary" className="text-xs">
-                              Gemini 2.0 Flash
+                              Gemini 2.5 Flash
                             </Badge>
                           </div>
                         </CardHeader>
@@ -429,7 +429,7 @@ Visual Assets:
                                  </Button>
                                </TooltipTrigger>
                                <TooltipContent>
-                                 <p className="text-xs">AI-generated image from Gemini 2.0 Flash</p>
+                                 <p className="text-xs">AI-generated image from Gemini 2.5 Flash Image Preview</p>
                                </TooltipContent>
                              </Tooltip>
                            </div>

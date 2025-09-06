@@ -228,6 +228,6 @@ export const generateActualImagesFromCanvas = async (
     
   } catch (error) {
     console.error('Error generating actual images:', error);
-    throw new Error(error instanceof Error ? error.message : 'Failed to generate images with Gemini 2.0 Flash');
+    throw new Error(error instanceof Error ? error.message : 'Failed to generate images with Gemini 2.5 Flash Image Preview');
   }
 };
