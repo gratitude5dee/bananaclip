@@ -1,32 +1,55 @@
 import { useState, useEffect, useCallback } from 'react';
 import { ProjectState, ProjectStateSchema } from '@/lib/schemas';
+import { useProjects } from './useProjects';
 
-const STORAGE_KEY = 'bananaStudio';
+const STORAGE_KEY = 'bananaStudio_';
 
 export function useProjectState() {
+  const { currentProject } = useProjects();
   const [projectState, setProjectState] = useState<ProjectState>(() => {
-    try {
-      const stored = localStorage.getItem(STORAGE_KEY);
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        // Convert date strings back to Date objects
-        parsed.createdAt = new Date(parsed.createdAt);
-        parsed.updatedAt = new Date(parsed.updatedAt);
-        return ProjectStateSchema.parse(parsed);
-      }
-    } catch (error) {
-      console.error('Failed to load project state:', error);
-    }
     return ProjectStateSchema.parse({});
   });
 
-  const saveToStorage = useCallback((state: ProjectState) => {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-    } catch (error) {
-      console.error('Failed to save project state:', error);
+  // Load project state when current project changes
+  useEffect(() => {
+    if (currentProject) {
+      try {
+        const stored = localStorage.getItem(STORAGE_KEY + currentProject.id);
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          // Convert date strings back to Date objects
+          parsed.createdAt = new Date(parsed.createdAt);
+          parsed.updatedAt = new Date(parsed.updatedAt);
+          setProjectState(ProjectStateSchema.parse({
+            ...parsed,
+            projectName: currentProject.name, // Sync with database project name
+          }));
+        } else {
+          // Initialize with project data from database
+          setProjectState(ProjectStateSchema.parse({
+            projectName: currentProject.name,
+          }));
+        }
+      } catch (error) {
+        console.error('Failed to load project state:', error);
+        setProjectState(ProjectStateSchema.parse({
+          projectName: currentProject.name,
+        }));
+      }
+    } else {
+      setProjectState(ProjectStateSchema.parse({}));
     }
-  }, []);
+  }, [currentProject]);
+
+  const saveToStorage = useCallback((state: ProjectState) => {
+    if (currentProject) {
+      try {
+        localStorage.setItem(STORAGE_KEY + currentProject.id, JSON.stringify(state));
+      } catch (error) {
+        console.error('Failed to save project state:', error);
+      }
+    }
+  }, [currentProject]);
 
   const updateProject = useCallback((updates: Partial<ProjectState>) => {
     const newState = {
