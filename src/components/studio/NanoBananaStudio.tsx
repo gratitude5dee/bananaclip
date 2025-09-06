@@ -1,19 +1,21 @@
-import React, { useState } from 'react';
-import { ProjectState } from '@/lib/schemas';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Switch } from '@/components/ui/switch';
-import { Separator } from '@/components/ui/separator';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Settings, Users, Play, Image as ImageIcon, Film } from 'lucide-react';
-import { useFalWorkflow } from '@/hooks/useFalWorkflow';
-import { SceneConfig, VideoStyle, AspectRatio, Character } from '@/lib/schemas';
+import { Separator } from '@/components/ui/separator';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Switch } from '@/components/ui/switch';
+import { Plus, Users, Settings, Sparkles, Play, RotateCcw, Upload, Film } from 'lucide-react';
+import { VideoUpload } from '@/components/video/VideoUpload';
+import { VideoTrimmer } from '@/components/video/VideoTrimmer';
+import { useVideoProcessor } from '@/hooks/useVideoProcessor';
+import { supabase } from '@/integrations/supabase/client';
+import type { ProjectState, SceneConfig, Character, AspectRatio, VideoStyle } from '@/lib/schemas';
 
 interface NanoBananaStudioProps {
   projectState: ProjectState;
@@ -22,76 +24,235 @@ interface NanoBananaStudioProps {
   onError: (error: string | null) => void;
 }
 
-export function NanoBananaStudio({ 
-  projectState, 
-  updateProject, 
-  onProgress, 
-  onError 
-}: NanoBananaStudioProps) {
-  const [sceneConfig, setSceneConfig] = useState<Partial<SceneConfig>>({
+export const NanoBananaStudio: React.FC<NanoBananaStudioProps> = ({
+  projectState,
+  updateProject,
+  onProgress,
+  onError
+}) => {
+  const [currentProject, setCurrentProject] = useState<any>(null);
+  const [selectedVideo, setSelectedVideo] = useState<File | null>(null);
+  const [showTrimmer, setShowTrimmer] = useState(false);
+  const [sceneConfig, setSceneConfig] = useState<SceneConfig>({
+    sceneName: 'Scene 1',
+    location: '',
+    lighting: 'Natural',
+    weather: 'Clear',
+    sceneDescription: '',
+    voiceover: '',
     aspectRatio: projectState.aspectRatio,
+    videoStyle: 'Cinematic',
     cast: projectState.cast,
+    styleReference: '',
+    cinematicInspiration: '',
+    specialRequests: '',
+    format: 'Custom',
+    customFormat: '',
+    genre: 'Drama',
+    tone: 'Serious',
+    addVoiceover: false
   });
-  const [showSceneEditor, setShowSceneEditor] = useState(false);
+  
   const [showCharacterDialog, setShowCharacterDialog] = useState(false);
-  const [newCharacter, setNewCharacter] = useState({ name: '', description: '' });
+  const [newCharacter, setNewCharacter] = useState<Omit<Character, 'id'>>({
+    name: '',
+    description: ''
+  });
 
-  const { generateScene, isGenerating, progress, error, result, reset } = useFalWorkflow();
+  const { frames, isProcessing, progress: videoProgress, error: videoError, processVideo, reset: resetVideo } = useVideoProcessor();
+  const [isGeneratingScene, setIsGeneratingScene] = useState(false);
+  const [sceneProgress, setSceneProgress] = useState(0);
+  const [generatedVideo, setGeneratedVideo] = useState<string | null>(null);
 
-  // Update global progress/error when local state changes
-  React.useEffect(() => {
-    onProgress(progress);
-  }, [progress, onProgress]);
+  // Initialize or get current project
+  useEffect(() => {
+    initializeProject();
+  }, []);
 
-  React.useEffect(() => {
-    onError(error);
-  }, [error, onError]);
+  // Propagate progress and error to parent
+  useEffect(() => {
+    const totalProgress = Math.max(videoProgress, sceneProgress);
+    onProgress(totalProgress);
+  }, [videoProgress, sceneProgress, onProgress]);
+
+  useEffect(() => {
+    onError(videoError);
+  }, [videoError, onError]);
+
+  const initializeProject = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      // Create or get existing project
+      const { data: projects, error: fetchError } = await supabase
+        .from('projects')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('name', projectState.projectName)
+        .maybeSingle();
+
+      if (fetchError) {
+        throw fetchError;
+      }
+
+      if (!projects) {
+        // Create new project
+        const { data: newProject, error: createError } = await supabase
+          .from('projects')
+          .insert({
+            user_id: user.id,
+            name: projectState.projectName,
+            aspect_ratio: projectState.aspectRatio,
+            video_style: 'Cinematic'
+          })
+          .select()
+          .single();
+
+        if (createError) throw createError;
+        setCurrentProject(newProject);
+      } else {
+        setCurrentProject(projects);
+      }
+    } catch (err: any) {
+      console.error('Error initializing project:', err);
+      onError(err.message);
+    }
+  };
+
+  const handleVideoSelect = (file: File) => {
+    setSelectedVideo(file);
+    setShowTrimmer(true);
+  };
+
+  const handleTrimConfirm = async (file: File, startTime: number, endTime: number) => {
+    if (!currentProject) return;
+    
+    setShowTrimmer(false);
+    
+    try {
+      const result = await processVideo(
+        currentProject.id,
+        file,
+        1, // frames per second
+        { startTime, endTime }
+      );
+      
+      if (result) {
+        console.log('Video processed successfully:', result);
+      }
+    } catch (err: any) {
+      console.error('Error processing video:', err);
+      onError(err.message);
+    }
+  };
+
+  const handleTrimCancel = () => {
+    setShowTrimmer(false);
+    setSelectedVideo(null);
+  };
 
   const handleStyleSelect = (style: VideoStyle) => {
     setSceneConfig(prev => ({ ...prev, videoStyle: style }));
   };
 
-  const handleAddCharacter = () => {
-    if (newCharacter.name && newCharacter.description) {
-      const character: Character = {
-        id: `char-${Date.now()}`,
-        name: newCharacter.name,
-        description: newCharacter.description,
-      };
-      
-      const updatedCast = [...projectState.cast, character];
-      updateProject({ cast: updatedCast });
-      setSceneConfig(prev => ({ ...prev, cast: updatedCast }));
-      setNewCharacter({ name: '', description: '' });
-      setShowCharacterDialog(false);
+  const handleAddCharacter = async () => {
+    if (newCharacter.name && newCharacter.description && currentProject) {
+      try {
+        const { data: character, error } = await supabase
+          .from('characters')
+          .insert({
+            project_id: currentProject.id,
+            name: newCharacter.name,
+            description: newCharacter.description
+          })
+          .select()
+          .single();
+
+        if (error) throw error;
+
+        const updatedCharacter: Character = {
+          id: character.id,
+          name: character.name,
+          description: character.description
+        };
+        
+        const updatedCast = [...projectState.cast, updatedCharacter];
+        updateProject({ cast: updatedCast });
+        setSceneConfig(prev => ({ ...prev, cast: updatedCast }));
+        setNewCharacter({ name: '', description: '' });
+        setShowCharacterDialog(false);
+      } catch (err: any) {
+        console.error('Error adding character:', err);
+        onError(err.message);
+      }
     }
   };
 
   const handleGenerate = async () => {
-    if (sceneConfig.sceneName && sceneConfig.location && sceneConfig.sceneDescription) {
-      const fullConfig: SceneConfig = {
-        sceneName: sceneConfig.sceneName!,
-        location: sceneConfig.location!,
-        lighting: sceneConfig.lighting || 'Natural',
-        weather: sceneConfig.weather || 'Clear',
-        sceneDescription: sceneConfig.sceneDescription!,
-        voiceover: sceneConfig.voiceover,
-        aspectRatio: sceneConfig.aspectRatio || '16:9',
-        videoStyle: sceneConfig.videoStyle || 'None',
-        styleReference: sceneConfig.styleReference,
-        cinematicInspiration: sceneConfig.cinematicInspiration,
-        cast: sceneConfig.cast || [],
-        specialRequests: sceneConfig.specialRequests,
-        format: sceneConfig.format || 'Custom',
-        customFormat: sceneConfig.customFormat,
-        genre: sceneConfig.genre,
-        tone: sceneConfig.tone,
-        addVoiceover: sceneConfig.addVoiceover || false,
-      };
+    if (!currentProject || !sceneConfig.sceneName || !sceneConfig.location || !sceneConfig.sceneDescription) {
+      return;
+    }
 
-      await generateScene(fullConfig);
+    setIsGeneratingScene(true);
+    setSceneProgress(0);
+
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-scene', {
+        body: {
+          projectId: currentProject.id,
+          sceneConfig
+        }
+      });
+
+      if (error) throw error;
+
+      if (data.success) {
+        setGeneratedVideo(data.videoUrl);
+        setSceneProgress(100);
+      } else {
+        throw new Error(data.error || 'Scene generation failed');
+      }
+    } catch (err: any) {
+      console.error('Error generating scene:', err);
+      onError(err.message);
+    } finally {
+      setIsGeneratingScene(false);
     }
   };
+
+  const reset = () => {
+    setGeneratedVideo(null);
+    setSceneProgress(0);
+    resetVideo();
+  };
+
+  // Show video upload if no frames and no trimmer
+  if (!frames.length && !showTrimmer && !isProcessing) {
+    return (
+      <div className="flex items-center justify-center min-h-[600px]">
+        <VideoUpload 
+          onVideoSelect={handleVideoSelect}
+          isProcessing={isProcessing}
+          progress={videoProgress}
+          error={videoError}
+        />
+      </div>
+    );
+  }
+
+  // Show video trimmer
+  if (showTrimmer && selectedVideo) {
+    return (
+      <div className="flex items-center justify-center min-h-[600px]">
+        <VideoTrimmer
+          file={selectedVideo}
+          onConfirm={handleTrimConfirm}
+          onCancel={handleTrimCancel}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 h-full">
@@ -164,20 +325,61 @@ export function NanoBananaStudio({
                 rows={3}
               />
             </div>
+
+            <Button 
+              variant="outline" 
+              onClick={() => {
+                setSelectedVideo(null);
+                setShowTrimmer(false);
+                resetVideo();
+              }}
+              className="w-full"
+            >
+              <Upload className="mr-2 h-4 w-4" />
+              Upload New Video
+            </Button>
           </CardContent>
         </Card>
       </div>
 
-      {/* Middle Panel - Scene Editor */}
+      {/* Middle Panel - Scene Editor & Video Preview */}
       <div className="lg:col-span-6 space-y-6">
+        {/* Video Preview */}
+        {frames.length > 0 && (
+          <Card className="dark-surface">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Film className="h-5 w-5" />
+                Video Frames ({frames.length})
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-4 gap-2 max-h-64 overflow-y-auto">
+                {frames.slice(0, 12).map((frame, index) => (
+                  <div key={frame.id} className="relative">
+                    <img 
+                      src={frame.data} 
+                      alt={`Frame ${index + 1}`} 
+                      className="w-full h-16 object-cover rounded border"
+                    />
+                    <div className="absolute bottom-0 right-0 bg-black/70 text-white text-xs px-1 rounded-tl">
+                      {index + 1}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         <Card className="dark-surface">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Film className="h-5 w-5" />
+              <Sparkles className="h-5 w-5" />
               Scene Configuration
             </CardTitle>
             <CardDescription>
-              Configure your scene details and generate video content
+              Configure your scene details and generate enhanced video content
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -227,7 +429,7 @@ export function NanoBananaStudio({
               <Label htmlFor="description">Scene Description</Label>
               <Textarea
                 id="description"
-                placeholder="Describe what happens in this scene... (max 2000 characters)"
+                placeholder="Describe what happens in this scene..."
                 value={sceneConfig.sceneDescription || ''}
                 onChange={(e) => setSceneConfig(prev => ({ ...prev, sceneDescription: e.target.value }))}
                 rows={4}
@@ -265,26 +467,27 @@ export function NanoBananaStudio({
             <div className="flex gap-4">
               <Button 
                 onClick={handleGenerate}
-                disabled={isGenerating || !sceneConfig.sceneName || !sceneConfig.location || !sceneConfig.sceneDescription}
+                disabled={isGeneratingScene || !sceneConfig.sceneName || !sceneConfig.location || !sceneConfig.sceneDescription}
                 className="flex-1"
               >
                 <Play className="mr-2 h-4 w-4" />
-                {isGenerating ? 'Generating...' : 'Generate Scene'}
+                {isGeneratingScene ? 'Generating...' : 'Generate Enhanced Scene'}
               </Button>
               
-              {result && (
+              {generatedVideo && (
                 <Button variant="outline" onClick={reset}>
+                  <RotateCcw className="mr-2 h-4 w-4" />
                   Reset
                 </Button>
               )}
             </div>
 
-            {result && (
+            {generatedVideo && (
               <Card className="bg-green-500/10 border-green-500/20">
                 <CardContent className="p-4">
-                  <div className="text-sm font-medium text-green-400 mb-2">Generation Complete!</div>
+                  <div className="text-sm font-medium text-green-400 mb-2">Enhanced Scene Generated!</div>
                   <div className="text-xs text-muted-foreground">
-                    Video generated successfully. Ready for review.
+                    Your BananaClip scene has been generated and is ready for review.
                   </div>
                 </CardContent>
               </Card>
@@ -374,4 +577,4 @@ export function NanoBananaStudio({
       </div>
     </div>
   );
-}
+};

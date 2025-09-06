@@ -14,6 +14,101 @@ export type Database = {
   }
   public: {
     Tables: {
+      characters: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          image_url: string | null
+          name: string
+          project_id: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          name: string
+          project_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          name?: string
+          project_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "characters_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      processing_jobs: {
+        Row: {
+          created_at: string
+          error_message: string | null
+          id: string
+          input_data: Json | null
+          job_type: string
+          output_data: Json | null
+          progress: number | null
+          project_id: string | null
+          scene_id: string | null
+          status: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          input_data?: Json | null
+          job_type: string
+          output_data?: Json | null
+          progress?: number | null
+          project_id?: string | null
+          scene_id?: string | null
+          status?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          input_data?: Json | null
+          job_type?: string
+          output_data?: Json | null
+          progress?: number | null
+          project_id?: string | null
+          scene_id?: string | null
+          status?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "processing_jobs_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "processing_jobs_scene_id_fkey"
+            columns: ["scene_id"]
+            isOneToOne: false
+            referencedRelation: "scenes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -43,6 +138,152 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      projects: {
+        Row: {
+          aspect_ratio: string | null
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          updated_at: string
+          user_id: string
+          video_style: string | null
+        }
+        Insert: {
+          aspect_ratio?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          updated_at?: string
+          user_id: string
+          video_style?: string | null
+        }
+        Update: {
+          aspect_ratio?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          updated_at?: string
+          user_id?: string
+          video_style?: string | null
+        }
+        Relationships: []
+      }
+      scenes: {
+        Row: {
+          created_at: string
+          description: string | null
+          generated_video_url: string | null
+          id: string
+          lighting: string | null
+          location: string | null
+          name: string
+          project_id: string
+          scene_config: Json | null
+          status: string | null
+          updated_at: string
+          voiceover: string | null
+          weather: string | null
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          generated_video_url?: string | null
+          id?: string
+          lighting?: string | null
+          location?: string | null
+          name?: string
+          project_id: string
+          scene_config?: Json | null
+          status?: string | null
+          updated_at?: string
+          voiceover?: string | null
+          weather?: string | null
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          generated_video_url?: string | null
+          id?: string
+          lighting?: string | null
+          location?: string | null
+          name?: string
+          project_id?: string
+          scene_config?: Json | null
+          status?: string | null
+          updated_at?: string
+          voiceover?: string | null
+          weather?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "scenes_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      video_assets: {
+        Row: {
+          asset_type: string | null
+          created_at: string
+          duration: number | null
+          file_name: string
+          file_size: number | null
+          file_url: string
+          id: string
+          metadata: Json | null
+          mime_type: string | null
+          project_id: string
+          scene_id: string | null
+        }
+        Insert: {
+          asset_type?: string | null
+          created_at?: string
+          duration?: number | null
+          file_name: string
+          file_size?: number | null
+          file_url: string
+          id?: string
+          metadata?: Json | null
+          mime_type?: string | null
+          project_id: string
+          scene_id?: string | null
+        }
+        Update: {
+          asset_type?: string | null
+          created_at?: string
+          duration?: number | null
+          file_name?: string
+          file_size?: number | null
+          file_url?: string
+          id?: string
+          metadata?: Json | null
+          mime_type?: string | null
+          project_id?: string
+          scene_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "video_assets_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "video_assets_scene_id_fkey"
+            columns: ["scene_id"]
+            isOneToOne: false
+            referencedRelation: "scenes"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
