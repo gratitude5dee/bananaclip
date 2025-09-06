@@ -75,7 +75,7 @@ export function DrawingCanvas({ onChange, className = '' }: DrawingCanvasProps) 
   const stopDrawing = () => {
     setIsDrawing(false);
     if (onChange && canvasRef.current) {
-      onChange(canvasRef.current.toDataURL('image/png'));
+      onChange(canvasRef.current.toDataURL('image/jpeg', 0.9));
     }
   };
 
