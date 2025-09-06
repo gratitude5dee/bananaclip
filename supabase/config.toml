@@ -80,3 +80,6 @@ verify_jwt = false
 
 [functions.upscale-image-fal]
 verify_jwt = false
+
+[functions.stitch-videos-fal]
+verify_jwt = false

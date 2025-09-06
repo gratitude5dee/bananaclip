@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { ProjectState, AdBrief, Platform, Objective, PLATFORM_CONSTRAINTS } from '@/lib/schemas';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Play, Sparkles, Download, Copy, Zap, Camera, Info, Cloud } from "lucide-react";
+import { Play, Sparkles, Download, Copy, Zap, Camera, Info, Cloud, Link } from "lucide-react";
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -17,6 +17,7 @@ import { Target, Hash, Clock, Palette } from 'lucide-react';
 import { useAdBanana } from '@/hooks/useAdBanana';
 import { useFalUpscale } from '@/hooks/useFalUpscale';
 import { useBatchVideoGeneration } from '@/hooks/useBatchVideoGeneration';
+import { useVideoStitching } from '@/hooks/useVideoStitching';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { DrawingCanvas } from '@/components/ui/drawing-canvas';
 import { ImageUploadGrid } from '@/components/ui/image-upload-grid';
@@ -72,6 +73,7 @@ export function AdBananaStudio({ projectState, onProgress, onError }: AdBananaSt
   const { generateAdPackage, exportToJSON, exportToSRT, isGenerating, progress, error, result, reset } = useAdBanana();
   const { upscaleImage, isUpscaling, progress: upscaleProgress, error: upscaleError, result: upscaleResult } = useFalUpscale();
   const { generateAllVideos, isGenerating: isBatchGenerating, progress: batchProgress, generatedVideos: batchGeneratedVideos, errors: batchErrors, reset: resetBatch } = useBatchVideoGeneration();
+  const { stitchVideos, isStitching, progress: stitchProgress, stitchedVideo, error: stitchError, reset: resetStitching } = useVideoStitching();
 
   // Effects for updating global progress and error
   React.useEffect(() => {
@@ -121,6 +123,14 @@ export function AdBananaStudio({ projectState, onProgress, onError }: AdBananaSt
     
     const sceneDescText = `${sceneDescription.setting} ${sceneDescription.subjects} ${sceneDescription.environment}`.trim();
     generateAllVideos(generatedImages, sceneDescText || 'Dynamic video scene');
+  };
+
+  const handleStitchAllVideos = () => {
+    if (batchGeneratedVideos.length === 0) return;
+    
+    const videoUrls = batchGeneratedVideos.map(video => video.storageUrl || video.url);
+    const projectName = adBrief.brand ? `${adBrief.brand}_${adBrief.product}` : 'ad-package';
+    stitchVideos(videoUrls, projectName);
   };
 
   const handleExportJSON = () => {
@@ -328,13 +338,34 @@ export function AdBananaStudio({ projectState, onProgress, onError }: AdBananaSt
                       Generate All Videos
                     </>
                   )}
-                </Button>
-                {batchGeneratedVideos.length > 0 && (
-                  <span className="text-sm text-muted-foreground self-center">
-                    {batchGeneratedVideos.length} videos generated
-                  </span>
-                )}
-              </div>
+                 </Button>
+                 {!isBatchGenerating && batchGeneratedVideos.length > 0 && batchProgress.failed === 0 && (
+                   <Button 
+                     onClick={handleStitchAllVideos}
+                     disabled={isStitching || batchGeneratedVideos.length === 0}
+                     variant="secondary"
+                     size="sm"
+                     className="bg-gradient-to-r from-green-600 to-teal-600 hover:from-green-700 hover:to-teal-700 text-white border-0"
+                   >
+                     {isStitching ? (
+                       <>
+                         <div className="w-4 h-4 mr-2 animate-spin border-2 border-white border-t-transparent rounded-full" />
+                         Stitching...
+                       </>
+                     ) : (
+                       <>
+                         <Link className="w-4 h-4 mr-2" />
+                         Stitch All Videos
+                       </>
+                     )}
+                   </Button>
+                 )}
+                 {batchGeneratedVideos.length > 0 && (
+                   <span className="text-sm text-muted-foreground self-center">
+                     {batchGeneratedVideos.length} videos generated
+                   </span>
+                 )}
+               </div>
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -709,10 +740,68 @@ export function AdBananaStudio({ projectState, onProgress, onError }: AdBananaSt
                           )}
                         </div>
                       </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              </TabsContent>
+                     </Card>
+                   ))}
+                 </div>
+                 
+                 {/* Stitched Video Section */}
+                 {stitchedVideo && (
+                   <div className="mt-8 pt-6 border-t border-border/30">
+                     <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                       <Link className="h-5 w-5 text-green-600" />
+                       Final Stitched Video
+                     </h3>
+                     <Card className="bg-card/30 border-border/30 overflow-hidden max-w-2xl mx-auto">
+                       <div className="relative aspect-video">
+                         <video 
+                           src={stitchedVideo.storageUrl || stitchedVideo.url} 
+                           controls
+                           className="w-full h-full object-cover"
+                         >
+                           Your browser does not support the video tag.
+                         </video>
+                       </div>
+                       <CardContent className="p-4 space-y-3">
+                         <div className="text-sm text-muted-foreground">
+                           Combined video from {batchGeneratedVideos.length} individual scenes
+                         </div>
+                         <div className="flex gap-2">
+                           <Button
+                             variant="outline"
+                             size="sm"
+                             onClick={() => {
+                               const link = document.createElement('a');
+                               link.href = stitchedVideo.storageUrl || stitchedVideo.url;
+                               link.download = 'final-stitched-video.mp4';
+                               link.click();
+                             }}
+                             className="flex-1 border-border/50 hover:bg-background/80"
+                           >
+                             <Download className="h-4 w-4 mr-2" />
+                             Download Final Video
+                           </Button>
+                           {stitchedVideo.storageUrl && (
+                             <Tooltip>
+                               <TooltipTrigger asChild>
+                                 <Button
+                                   variant="outline"
+                                   size="sm"
+                                   className="border-border/50 hover:bg-background/80"
+                                 >
+                                   <Cloud className="h-4 w-4" />
+                                 </Button>
+                               </TooltipTrigger>
+                               <TooltipContent>
+                                 <p className="text-xs">Stored in Supabase Storage</p>
+                               </TooltipContent>
+                             </Tooltip>
+                           )}
+                         </div>
+                       </CardContent>
+                     </Card>
+                   </div>
+                 )}
+               </TabsContent>
 
               <TabsContent value="script" className="space-y-4">
                 <Card>
