@@ -12,11 +12,13 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Target, Sparkles, Download, Copy, Info, Hash, Clock, Palette, Camera } from 'lucide-react';
+import { Target, Sparkles, Download, Copy, Info, Hash, Clock, Palette, Camera, Zap, Play } from 'lucide-react';
 import { useAdBanana } from '@/hooks/useAdBanana';
+import { useFalUpscale } from '@/hooks/useFalUpscale';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { DrawingCanvas } from '@/components/ui/drawing-canvas';
 import { ImageUploadGrid } from '@/components/ui/image-upload-grid';
+import { VideoGenerationModal } from './VideoGenerationModal';
 import { generateImagesFromCanvas, generateActualImagesFromCanvas } from '@/services/geminiService';
 
 interface AdBananaStudioProps {
@@ -54,8 +56,12 @@ export function AdBananaStudio({ projectState, onProgress, onError }: AdBananaSt
   });
   const [variantCount, setVariantCount] = useState(3);
   const [activeResultTab, setActiveResultTab] = useState('script');
+  const [videoModalOpen, setVideoModalOpen] = useState(false);
+  const [selectedImageForVideo, setSelectedImageForVideo] = useState<{ base64: string; name: string } | null>(null);
+  const [hoveredImageIndex, setHoveredImageIndex] = useState<number | null>(null);
 
   const { generateAdPackage, isGenerating, progress, error, result, exportToJSON, exportToSRT, reset } = useAdBanana();
+  const { upscaleImage, isUpscaling, progress: upscaleProgress, result: upscaleResult } = useFalUpscale();
 
   // Update global progress/error when local state changes
   React.useEffect(() => {
@@ -394,14 +400,50 @@ Visual Assets:
                             </Badge>
                           </div>
                         </CardHeader>
-                        <CardContent className="space-y-4">
-                          <div className="bg-gradient-to-br from-muted/30 to-muted/10 border border-border/30 rounded-xl overflow-hidden">
-                            <img 
-                              src={`data:image/png;base64,${imageData.base64_data}`}
-                              alt={`Generated creative concept ${index + 1}`}
-                              className="w-full h-auto rounded-xl"
-                            />
-                          </div>
+                         <CardContent className="space-y-4">
+                           <div 
+                             className="relative bg-gradient-to-br from-muted/30 to-muted/10 border border-border/30 rounded-xl overflow-hidden group"
+                             onMouseEnter={() => setHoveredImageIndex(index)}
+                             onMouseLeave={() => setHoveredImageIndex(null)}
+                           >
+                             <img 
+                               src={`data:image/png;base64,${imageData.base64_data}`}
+                               alt={`Generated creative concept ${index + 1}`}
+                               className="w-full h-auto rounded-xl"
+                             />
+                             
+                             {/* Hover Buttons */}
+                             <div className={`absolute inset-0 bg-black/50 flex items-center justify-center gap-3 transition-opacity duration-200 ${
+                               hoveredImageIndex === index ? 'opacity-100' : 'opacity-0 pointer-events-none'
+                             }`}>
+                               <Button
+                                 size="sm"
+                                 variant="secondary"
+                                 className="bg-background/90 hover:bg-background text-foreground border border-border/50"
+                                 onClick={() => upscaleImage(imageData.base64_data)}
+                                 disabled={isUpscaling}
+                               >
+                                 <Zap className="h-4 w-4 mr-2" />
+                                 {isUpscaling ? 'Upscaling...' : 'Upscale'}
+                               </Button>
+                               
+                               <Button
+                                 size="sm"
+                                 variant="secondary"
+                                 className="bg-background/90 hover:bg-background text-foreground border border-border/50"
+                                 onClick={() => {
+                                   setSelectedImageForVideo({
+                                     base64: imageData.base64_data,
+                                     name: imageData.filename
+                                   });
+                                   setVideoModalOpen(true);
+                                 }}
+                               >
+                                 <Play className="h-4 w-4 mr-2" />
+                                 Video
+                               </Button>
+                             </div>
+                           </div>
                            <div className="flex gap-2">
                              <Button
                                variant="outline"
@@ -640,6 +682,19 @@ Visual Assets:
             </Tabs>
           </CardContent>
         </Card>
+      )}
+      
+      {/* Video Generation Modal */}
+      {selectedImageForVideo && (
+        <VideoGenerationModal
+          isOpen={videoModalOpen}
+          onClose={() => {
+            setVideoModalOpen(false);
+            setSelectedImageForVideo(null);
+          }}
+          imageBase64={selectedImageForVideo.base64}
+          imageName={selectedImageForVideo.name}
+        />
       )}
     </div>
   );

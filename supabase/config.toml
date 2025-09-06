@@ -74,3 +74,9 @@ verify_jwt = false
 
 [functions.generate-images-gemini]
 verify_jwt = false
+
+[functions.generate-video-fal]
+verify_jwt = false
+
+[functions.upscale-image-fal]
+verify_jwt = false
