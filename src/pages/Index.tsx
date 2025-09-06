@@ -9,11 +9,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Progress } from '@/components/ui/progress';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Separator } from '@/components/ui/separator';
-import { Settings, Users, Sparkles, Target } from 'lucide-react';
+import { Settings, Users, Sparkles, Target, Plus } from 'lucide-react';
 import { NanoBananaStudio } from '@/components/studio/NanoBananaStudio';
 import { AdBananaStudio } from '@/components/studio/AdBananaStudio';
 import { NanoBananaApp } from '@/components/nano/NanoBananaApp';
 import { ProjectSwitcher } from '@/components/projects/ProjectSwitcher';
+import { CreateProjectDialog } from '@/components/projects/CreateProjectDialog';
+import { ProjectTemplates } from '@/components/projects/ProjectTemplates';
 
 export type StudioTab = 'nano' | 'ad';
 
@@ -25,6 +27,7 @@ const Index = () => {
   const [activeTab, setActiveTab] = useState<StudioTab>('nano');
   const [globalProgress, setGlobalProgress] = useState(0);
   const [globalError, setGlobalError] = useState<string | null>(null);
+  const [showCreateDialog, setShowCreateDialog] = useState(false);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -85,18 +88,39 @@ const Index = () => {
       {/* Main Content */}
       <div className="mx-auto w-full max-w-7xl px-4 pt-6">
         {!currentProject ? (
-          <div className="text-center py-12">
-            <div className="mx-auto w-16 h-16 bg-muted rounded-full flex items-center justify-center mb-4">
-              <div className="text-2xl">📁</div>
+          <>
+            {/* Hero Section */}
+            <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-brand-teal via-brand-purple to-brand-pink p-8 md:p-12 text-center text-white mb-8">
+              <div className="relative z-10">
+                <h1 className="text-4xl md:text-6xl font-bold mb-4">
+                  Nano-Banana Shorts Editor
+                </h1>
+                <p className="text-lg md:text-xl text-white/90 mb-8 max-w-2xl mx-auto">
+                  Transform your ideas into engaging short-form content with AI-powered video creation
+                </p>
+                <Button 
+                  size="lg" 
+                  onClick={() => setShowCreateDialog(true)}
+                  className="bg-white/20 text-white border border-white/30 hover:bg-white/30 transition-all duration-200"
+                >
+                  <Plus className="h-5 w-5 mr-2" />
+                  Create Project
+                </Button>
+              </div>
+              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent animate-shimmer" />
             </div>
-            <h3 className="text-lg font-semibold mb-2">No Project Selected</h3>
-            <p className="text-muted-foreground mb-4">
-              Select a project or create a new one to get started
-            </p>
-            <Button onClick={() => navigate('/projects')}>
-              Manage Projects
-            </Button>
-          </div>
+
+            {/* Templates Section */}
+            <div className="mb-8">
+              <div className="text-center mb-8">
+                <h2 className="text-3xl font-bold mb-2">Choose a Template</h2>
+                <p className="text-muted-foreground text-lg">
+                  Get started quickly with our pre-configured templates
+                </p>
+              </div>
+              <ProjectTemplates onSelectTemplate={() => setShowCreateDialog(true)} />
+            </div>
+          </>
         ) : (
           <>
             {/* Tabs Navigation */}
@@ -147,6 +171,12 @@ const Index = () => {
           </>
         )}
       </div>
+
+      {/* Create Project Dialog */}
+      <CreateProjectDialog 
+        open={showCreateDialog} 
+        onOpenChange={setShowCreateDialog} 
+      />
     </div>
   );
 };
