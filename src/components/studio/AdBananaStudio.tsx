@@ -55,7 +55,7 @@ export function AdBananaStudio({ projectState, onProgress, onError }: AdBananaSt
     sensitiveClaims: false,
   });
   const [variantCount, setVariantCount] = useState(3);
-  const [activeResultTab, setActiveResultTab] = useState('script');
+  const [activeResultTab, setActiveResultTab] = useState('images');
   const [videoModalOpen, setVideoModalOpen] = useState(false);
   const [selectedImageForVideo, setSelectedImageForVideo] = useState<{ base64: string; name: string } | null>(null);
   const [hoveredImageIndex, setHoveredImageIndex] = useState<number | null>(null);
