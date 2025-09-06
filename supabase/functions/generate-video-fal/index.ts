@@ -16,7 +16,7 @@ serve(async (req) => {
       throw new Error('FAL_KEY is not set');
     }
 
-    const { imageBase64, prompt, aspectRatio = "16:9", duration = "8s" } = await req.json();
+    const { imageBase64, prompt, duration = "8s" } = await req.json();
 
     if (!imageBase64 || !prompt) {
       return new Response(
@@ -55,14 +55,11 @@ serve(async (req) => {
     
     console.log('Image data URI length:', imageDataUri.length, 'Format detected from base64 prefix:', imageBase64.substring(0, 10));
 
-    const result = await fal.subscribe("fal-ai/veo3/fast", {
+    const result = await fal.subscribe("fal-ai/veo3/fast/image-to-video", {
       input: {
         prompt: prompt,
         image_url: imageDataUri,
-        aspect_ratio: aspectRatio,
         duration: duration,
-        enhance_prompt: true,
-        auto_fix: true,
         resolution: "720p",
         generate_audio: false
       },
