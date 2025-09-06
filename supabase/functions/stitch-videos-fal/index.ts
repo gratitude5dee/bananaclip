@@ -39,25 +39,12 @@ serve(async (req) => {
       credentials: FAL_KEY
     });
 
-    // Prepare inputs for FFmpeg merge
-    const inputs = videoUrls.map((url: string, index: number) => ({
-      url: url,
-      seek_seconds: 0, // Start from beginning
-      duration_seconds: null // Use full duration
-    }));
-
-    console.log('Prepared inputs for FFmpeg:', inputs);
+    console.log('Video URLs to stitch:', videoUrls);
 
     const result = await fal.subscribe("fal-ai/ffmpeg-api/merge-videos", {
       input: {
-        inputs: inputs,
-        output_format: "mp4",
-        video_codec: "libx264",
-        audio_codec: "aac",
-        video_bitrate: "2M",
-        audio_bitrate: "128k",
-        fps: 30,
-        resolution: "1280x720"
+        video_urls: videoUrls,
+        resolution: "landscape_16_9"
       },
       logs: true,
       onQueueUpdate: (update) => {
