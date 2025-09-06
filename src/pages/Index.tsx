@@ -1,12 +1,26 @@
-import { useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
+import { useProjectState } from '@/hooks/useProjectState';
 import { Button } from '@/components/ui/button';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Progress } from '@/components/ui/progress';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Separator } from '@/components/ui/separator';
+import { Settings, Users, Sparkles, Target } from 'lucide-react';
+import { NanoBananaStudio } from '@/components/studio/NanoBananaStudio';
+import { AdBananaStudio } from '@/components/studio/AdBananaStudio';
+
+export type StudioTab = 'nano' | 'ad';
 
 const Index = () => {
   const { user, loading, signOut } = useAuth();
   const navigate = useNavigate();
+  const { projectState, updateProject } = useProjectState();
+  const [activeTab, setActiveTab] = useState<StudioTab>('nano');
+  const [globalProgress, setGlobalProgress] = useState(0);
+  const [globalError, setGlobalError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -16,7 +30,7 @@ const Index = () => {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-background">
+      <div className="flex min-h-screen items-center justify-center dark-bg">
         <div className="text-center text-muted-foreground">Loading...</div>
       </div>
     );
@@ -24,16 +38,16 @@ const Index = () => {
 
   if (!user) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-background">
-        <Card className="w-full max-w-md">
+      <div className="flex min-h-screen items-center justify-center dark-bg">
+        <Card className="w-full max-w-md dark-surface">
           <CardHeader className="text-center">
             <CardTitle>Welcome</CardTitle>
             <CardDescription>Please sign in to continue</CardDescription>
           </CardHeader>
           <CardContent>
-            <Link to="/auth">
-              <Button className="w-full">Go to Sign In</Button>
-            </Link>
+            <Button onClick={() => navigate('/auth')} className="w-full">
+              Go to Sign In
+            </Button>
           </CardContent>
         </Card>
       </div>
@@ -41,23 +55,83 @@ const Index = () => {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background">
-      <Card className="w-full max-w-md">
-        <CardHeader className="text-center">
-          <CardTitle>Welcome Back!</CardTitle>
-          <CardDescription>You are successfully signed in</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="text-center">
-            <p className="text-sm text-muted-foreground">
-              Signed in as: <span className="font-medium">{user.email}</span>
-            </p>
+    <div className="min-h-screen dark-bg flex flex-col">
+      {/* Header */}
+      <header className="border-b dark-border bg-card/50 backdrop-blur-sm sticky top-0 z-50">
+        <div className="mx-auto w-full max-w-7xl px-4 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <h1 className="text-2xl font-display brand-teal">Banana Studio</h1>
+              <Separator orientation="vertical" className="h-6" />
+              <div className="text-sm text-muted-foreground">
+                {projectState.projectName}
+              </div>
+            </div>
+            
+            <div className="flex items-center gap-4">
+              <div className="text-xs text-muted-foreground">
+                {user.email}
+              </div>
+              <Button onClick={signOut} variant="ghost" size="sm">
+                Sign Out
+              </Button>
+            </div>
           </div>
-          <Button onClick={signOut} variant="outline" className="w-full">
-            Sign Out
-          </Button>
-        </CardContent>
-      </Card>
+        </div>
+      </header>
+
+      {/* Tabs Navigation */}
+      <div className="mx-auto w-full max-w-7xl px-4 pt-6">
+        <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as StudioTab)}>
+          <TabsList className="grid w-full max-w-md grid-cols-2">
+            <TabsTrigger value="nano" className="flex items-center gap-2">
+              <Sparkles className="h-4 w-4" />
+              Nano Banana
+            </TabsTrigger>
+            <TabsTrigger value="ad" className="flex items-center gap-2">
+              <Target className="h-4 w-4" />
+              AdBanana
+            </TabsTrigger>
+          </TabsList>
+
+          {/* Global Progress & Error Display */}
+          {globalProgress > 0 && globalProgress < 100 && (
+            <div className="mt-4 max-w-md">
+              <div className="flex items-center justify-between text-sm text-muted-foreground mb-2">
+                <span>Generating...</span>
+                <span>{globalProgress}%</span>
+              </div>
+              <Progress value={globalProgress} className="h-2" />
+            </div>
+          )}
+
+          {globalError && (
+            <Alert variant="destructive" className="mt-4 max-w-md">
+              <AlertDescription>{globalError}</AlertDescription>
+            </Alert>
+          )}
+
+          {/* Tab Content */}
+          <div className="mt-6">
+            <TabsContent value="nano" className="mt-0">
+              <NanoBananaStudio 
+                projectState={projectState}
+                updateProject={updateProject}
+                onProgress={setGlobalProgress}
+                onError={setGlobalError}
+              />
+            </TabsContent>
+            
+            <TabsContent value="ad" className="mt-0">
+              <AdBananaStudio 
+                projectState={projectState}
+                onProgress={setGlobalProgress}
+                onError={setGlobalError}
+              />
+            </TabsContent>
+          </div>
+        </Tabs>
+      </div>
     </div>
   );
 };
