@@ -42,6 +42,13 @@ export const useBatchVideoGeneration = () => {
       try {
         const prompt = `${sceneDescription} - Dynamic video scene ${index + 1}`;
         
+        // Log the image data format being sent to help debug
+        console.log(`Generating video for image ${index + 1}:`, {
+          imageIdPrefix: image.id,
+          base64Prefix: image.base64_data.substring(0, 20),
+          prompt: prompt.substring(0, 50) + '...'
+        });
+
         const { data, error: functionError } = await supabase.functions.invoke('generate-video-fal', {
           body: {
             imageBase64: image.base64_data,

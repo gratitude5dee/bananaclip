@@ -34,10 +34,26 @@ serve(async (req) => {
       credentials: FAL_KEY
     });
 
-    // Convert base64 to data URI if not already
-    const imageDataUri = imageBase64.startsWith('data:') 
-      ? imageBase64 
-      : `data:image/jpeg;base64,${imageBase64}`;
+    // Convert base64 to data URI with proper MIME type detection
+    let imageDataUri: string;
+    if (imageBase64.startsWith('data:')) {
+      imageDataUri = imageBase64;
+    } else {
+      // Detect image format from base64 data (Gemini generates PNG images)
+      // PNG images start with 'iVBOR' in base64, JPEG images start with '/9j/'
+      const isPng = imageBase64.startsWith('iVBOR');
+      const isJpeg = imageBase64.startsWith('/9j/') || imageBase64.startsWith('iVBOR') === false;
+      
+      if (isPng) {
+        imageDataUri = `data:image/png;base64,${imageBase64}`;
+        console.log('Detected PNG image format for Veo3');
+      } else {
+        imageDataUri = `data:image/jpeg;base64,${imageBase64}`;
+        console.log('Detected JPEG image format for Veo3');
+      }
+    }
+    
+    console.log('Image data URI length:', imageDataUri.length, 'Format detected from base64 prefix:', imageBase64.substring(0, 10));
 
     const result = await fal.subscribe("fal-ai/veo3/fast", {
       input: {
@@ -48,7 +64,7 @@ serve(async (req) => {
         enhance_prompt: true,
         auto_fix: true,
         resolution: "720p",
-        generate_audio: true
+        generate_audio: false
       },
       logs: true,
       onQueueUpdate: (update) => {
