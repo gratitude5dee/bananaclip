@@ -118,3 +118,116 @@ export const generateImagesFromCanvas = async (
     throw new Error('Failed to generate images with Gemini NanoBanana. Please try again later.');
   }
 };
+
+export const generateActualImagesFromCanvas = async (
+  canvasData: string,
+  uploadedImages: (File | null)[],
+  sceneDescription: any
+): Promise<{ id: string; base64_data: string; filename: string }[]> => {
+  try {
+    // Create form data
+    const formData = new FormData();
+    
+    // Add doodle image (canvas sketch)
+    if (canvasData) {
+      // Convert base64 to blob
+      const response = await fetch(canvasData);
+      const blob = await response.blob();
+      const canvasBlob = new File([blob], 'doodle_sketch.png', { type: 'image/png' });
+      formData.append('doodle_image', canvasBlob);
+    } else {
+      // Create empty 1x1 transparent PNG as placeholder
+      const emptyBlob = await new Promise<Blob>((resolve) => {
+        const canvas = document.createElement('canvas');
+        canvas.width = 1;
+        canvas.height = 1;
+        const ctx = canvas.getContext('2d');
+        ctx!.clearRect(0, 0, 1, 1);
+        
+        canvas.toBlob((blob) => {
+          if (blob) resolve(blob);
+        }, 'image/png');
+      });
+      
+      const emptyFile = new File([emptyBlob], 'empty.png', { type: 'image/png' });
+      formData.append('doodle_image', emptyFile);
+    }
+    
+    // Add location images (fill missing with placeholder)
+    const maxImages = 5;
+    let imageCount = 0;
+    
+    for (const file of uploadedImages) {
+      if (file && imageCount < maxImages) {
+        formData.append(`location_image_${imageCount + 1}`, file);
+        imageCount++;
+      }
+    }
+    
+    // Fill remaining slots with placeholder images synchronously
+    const createPlaceholderBlob = (colorIndex: number): Promise<Blob> => {
+      return new Promise((resolve) => {
+        const canvas = document.createElement('canvas');
+        canvas.width = 100;
+        canvas.height = 100;
+        const ctx = canvas.getContext('2d');
+        ctx!.fillStyle = `hsl(${colorIndex * 60}, 50%, 90%)`;
+        ctx!.fillRect(0, 0, 100, 100);
+        
+        canvas.toBlob((blob) => {
+          if (blob) resolve(blob);
+        }, 'image/png');
+      });
+    };
+    
+    // Create placeholder blobs for missing images
+    for (let i = imageCount; i < maxImages; i++) {
+      const blob = await createPlaceholderBlob(i);
+      const placeholderFile = new File([blob], `placeholder_${i + 1}.png`, { type: 'image/png' });
+      formData.append(`location_image_${i + 1}`, placeholderFile);
+    }
+
+    // Add description with mapped field names for FastAPI compatibility  
+    const description = {
+      setting: sceneDescription.setting || 'Modern creative space',
+      subjects: sceneDescription.subjects || 'Creative subjects',
+      composition: sceneDescription.composition || 'Balanced composition',
+      environment: sceneDescription.environment || 'Professional environment',
+      lighting: sceneDescription.lighting || 'Studio lighting',
+      focal_points: sceneDescription.focalPoints || 'Main focal elements',
+      mood: sceneDescription.mood || 'Professional and engaging'
+    };
+    
+    formData.append('description', JSON.stringify(description));
+
+    // Use fetch directly to call the banana-clip function
+    const supabaseUrl = "https://glawvradrxlzcxwpkwxj.supabase.co";
+    const supabaseAnonKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdsYXd2cmFkcnhsemN4d3Brd3hqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTcxODQwMjksImV4cCI6MjA3Mjc2MDAyOX0.FJGzFxRkqHMx3kke5xF7sueoZl_ktVX-UnNMKyBJSlo";
+    
+    const response = await fetch(`${supabaseUrl}/functions/v1/banana-clip/generate-images`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${supabaseAnonKey}`,
+      },
+      body: formData
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Banana Clip API error:', errorText);
+      throw new Error(`API request failed (${response.status}): ${errorText}`);
+    }
+
+    const data = await response.json();
+    
+    if (!data.success) {
+      throw new Error(data.error || 'Failed to generate images');
+    }
+
+    return data.generated_images || [];
+    
+  } catch (error) {
+    console.error('Error generating actual images:', error);
+    throw new Error(error instanceof Error ? error.message : 'Failed to generate images with Gemini 2.0 Flash');
+  }
+};

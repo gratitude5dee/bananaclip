@@ -69,5 +69,8 @@ verify_jwt = false
 [functions.edit-frame]
 verify_jwt = false
 
+[functions.banana-clip]
+verify_jwt = false
+
 [functions.generate-images-gemini]
 verify_jwt = false

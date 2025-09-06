@@ -17,7 +17,7 @@ import { useAdBanana } from '@/hooks/useAdBanana';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { DrawingCanvas } from '@/components/ui/drawing-canvas';
 import { ImageUploadGrid } from '@/components/ui/image-upload-grid';
-import { generateImagesFromCanvas } from '@/services/geminiService';
+import { generateImagesFromCanvas, generateActualImagesFromCanvas } from '@/services/geminiService';
 
 interface AdBananaStudioProps {
   projectState: ProjectState;
@@ -40,7 +40,7 @@ export function AdBananaStudio({ projectState, onProgress, onError }: AdBananaSt
   // Visual assets state
   const [canvasData, setCanvasData] = useState<string>('');
   const [referenceImages, setReferenceImages] = useState<(File | null)[]>([]);
-  const [generatedImages, setGeneratedImages] = useState<string[]>([]);
+  const [generatedImages, setGeneratedImages] = useState<{ id: string; base64_data: string; filename: string }[]>([]);
   const [isGeneratingImages, setIsGeneratingImages] = useState(false);
   const [lastGenerationTime, setLastGenerationTime] = useState(0);
   const [generationError, setGenerationError] = useState<string | null>(null);
@@ -90,19 +90,18 @@ export function AdBananaStudio({ projectState, onProgress, onError }: AdBananaSt
       setGenerationError(null);
       setLastGenerationTime(now);
       
-      // First generate images using Gemini NanoBanana API
+      // First generate actual images using Gemini 2.0 Flash via Banana Clip API
       setIsGeneratingImages(true);
-      console.log('Generating images with Gemini NanoBanana...');
+      console.log('Generating images with Gemini 2.0 Flash...');
       
-      const images = await generateImagesFromCanvas(
+      const images = await generateActualImagesFromCanvas(
         canvasData, 
         referenceImages, 
-        sceneDescription, 
-        2 // Reduced from 4 to save quota
+        sceneDescription
       );
       
       setGeneratedImages(images);
-      console.log('Generated images:', images.length);
+      console.log('Generated actual images:', images.length);
       
       setIsGeneratingImages(false);
       
@@ -380,52 +379,60 @@ Visual Assets:
               <TabsContent value="images" className="space-y-4">
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                   {generatedImages.length > 0 ? (
-                    generatedImages.map((imageDescription, index) => (
-                      <Card key={index} className="bg-card/50 backdrop-blur-sm border border-border/50">
+                    generatedImages.map((imageData, index) => (
+                      <Card key={imageData.id} className="bg-card/50 backdrop-blur-sm border border-border/50">
                         <CardHeader className="pb-3">
                           <div className="flex items-center justify-between">
                             <CardTitle className="text-base flex items-center gap-2">
                               <div className="w-8 h-8 bg-gradient-to-br from-primary to-accent rounded-lg flex items-center justify-center text-sm">
                                 {index + 1}
                               </div>
-                              Creative Concept {index + 1}
+                              Creative Image {index + 1}
                             </CardTitle>
                             <Badge variant="secondary" className="text-xs">
-                              Gemini Generated
+                              Gemini 2.0 Flash
                             </Badge>
                           </div>
                         </CardHeader>
                         <CardContent className="space-y-4">
-                          <div className="bg-gradient-to-br from-muted/30 to-muted/10 border border-border/30 rounded-xl p-4">
-                            <p className="text-sm leading-relaxed text-foreground/90">
-                              {imageDescription}
-                            </p>
+                          <div className="bg-gradient-to-br from-muted/30 to-muted/10 border border-border/30 rounded-xl overflow-hidden">
+                            <img 
+                              src={`data:image/png;base64,${imageData.base64_data}`}
+                              alt={`Generated creative concept ${index + 1}`}
+                              className="w-full h-auto rounded-xl"
+                            />
                           </div>
-                          <div className="flex gap-2">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => copyToClipboard(imageDescription)}
-                              className="flex-1 border-border/50 hover:bg-background/80"
-                            >
-                              <Copy className="h-4 w-4 mr-2" />
-                              Copy Description
-                            </Button>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  className="border-border/50 hover:bg-background/80"
-                                >
-                                  <Info className="h-4 w-4" />
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p className="text-xs">AI-generated creative concept for advertising imagery</p>
-                              </TooltipContent>
-                            </Tooltip>
-                          </div>
+                           <div className="flex gap-2">
+                             <Button
+                               variant="outline"
+                               size="sm"
+                               onClick={() => {
+                                 // Download image
+                                 const link = document.createElement('a');
+                                 link.href = `data:image/png;base64,${imageData.base64_data}`;
+                                 link.download = imageData.filename;
+                                 link.click();
+                               }}
+                               className="flex-1 border-border/50 hover:bg-background/80"
+                             >
+                               <Download className="h-4 w-4 mr-2" />
+                               Download Image
+                             </Button>
+                             <Tooltip>
+                               <TooltipTrigger asChild>
+                                 <Button
+                                   variant="outline"
+                                   size="sm"
+                                   className="border-border/50 hover:bg-background/80"
+                                 >
+                                   <Info className="h-4 w-4" />
+                                 </Button>
+                               </TooltipTrigger>
+                               <TooltipContent>
+                                 <p className="text-xs">AI-generated image from Gemini 2.0 Flash</p>
+                               </TooltipContent>
+                             </Tooltip>
+                           </div>
                         </CardContent>
                       </Card>
                     ))
