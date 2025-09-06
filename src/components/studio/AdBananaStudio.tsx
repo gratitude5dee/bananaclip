@@ -441,6 +441,15 @@ export function AdBananaStudio({ projectState, onProgress, onError }: AdBananaSt
                       controls
                       className="w-full h-full object-cover"
                       poster="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23666' d='M8 5v14l11-7z'/%3E%3C/svg%3E"
+                      onError={(e) => {
+                        console.error('Video playback error:', e);
+                        const videoElement = e.target as HTMLVideoElement;
+                        if (video.url && videoElement.src !== video.url) {
+                          // Try fallback to external URL if signed URL fails
+                          console.log('Falling back to external URL:', video.url);
+                          videoElement.src = video.url;
+                        }
+                      }}
                     >
                       Your browser does not support the video tag.
                     </video>
@@ -450,20 +459,31 @@ export function AdBananaStudio({ projectState, onProgress, onError }: AdBananaSt
                       {video.prompt}
                     </div>
                     <div className="flex gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                          const link = document.createElement('a');
-                          link.href = video.storageUrl || video.url;
-                          link.download = `video_${index + 1}.mp4`;
-                          link.click();
-                        }}
-                        className="flex-1 border-border/50 hover:bg-background/80"
-                      >
-                        <Download className="h-4 w-4 mr-2" />
-                        Download
-                      </Button>
+                       <Button
+                         variant="outline"
+                         size="sm"
+                         onClick={async () => {
+                           try {
+                             const link = document.createElement('a');
+                             link.href = video.storageUrl || video.url;
+                             link.download = `video_${index + 1}.mp4`;
+                             link.click();
+                           } catch (error) {
+                             console.error('Download error:', error);
+                             // Fallback to external URL if storage URL fails
+                             if (video.url && video.storageUrl) {
+                               const link = document.createElement('a');
+                               link.href = video.url;
+                               link.download = `video_${index + 1}.mp4`;
+                               link.click();
+                             }
+                           }
+                         }}
+                         className="flex-1 border-border/50 hover:bg-background/80"
+                       >
+                         <Download className="h-4 w-4 mr-2" />
+                         Download
+                       </Button>
                       {video.storageUrl && (
                         <Tooltip>
                           <TooltipTrigger asChild>

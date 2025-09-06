@@ -120,6 +120,10 @@ export const VideoGenerationModal: React.FC<VideoGenerationModalProps> = ({
                   controls
                   className="w-full rounded-md"
                   poster={`data:image/png;base64,${imageBase64}`}
+                  onError={(e) => {
+                    console.error('Video playback error in modal:', e);
+                    // Could potentially implement URL refresh here if needed
+                  }}
                 />
               </div>
               
