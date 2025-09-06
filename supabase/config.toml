@@ -58,7 +58,13 @@ enable_confirmations = false
 verify_jwt = true
 
 [functions.process-video]
-verify_jwt = true
+verify_jwt = false
 
 [functions.generate-scene]
-verify_jwt = true
+verify_jwt = false
+
+[functions.analyze-frames]
+verify_jwt = false
+
+[functions.edit-frame]
+verify_jwt = false

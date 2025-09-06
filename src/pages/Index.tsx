@@ -11,6 +11,7 @@ import { Separator } from '@/components/ui/separator';
 import { Settings, Users, Sparkles, Target } from 'lucide-react';
 import { NanoBananaStudio } from '@/components/studio/NanoBananaStudio';
 import { AdBananaStudio } from '@/components/studio/AdBananaStudio';
+import { NanoBananaApp } from '@/components/nano/NanoBananaApp';
 
 export type StudioTab = 'nano' | 'ad';
 
@@ -86,7 +87,7 @@ const Index = () => {
           <TabsList className="grid w-full max-w-md grid-cols-2 mx-auto">
             <TabsTrigger value="nano" className="flex items-center gap-2">
               <Sparkles className="h-4 w-4" />
-              BananaClip
+              Nano-Banana
             </TabsTrigger>
             <TabsTrigger value="ad" className="flex items-center gap-2">
               <Target className="h-4 w-4" />
@@ -114,12 +115,7 @@ const Index = () => {
           {/* Tab Content */}
           <div className="mt-6">
             <TabsContent value="nano" className="mt-0">
-              <NanoBananaStudio 
-                projectState={projectState}
-                updateProject={updateProject}
-                onProgress={setGlobalProgress}
-                onError={setGlobalError}
-              />
+              <NanoBananaApp />
             </TabsContent>
             
             <TabsContent value="ad" className="mt-0">

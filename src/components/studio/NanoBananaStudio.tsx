@@ -59,7 +59,7 @@ export const NanoBananaStudio: React.FC<NanoBananaStudioProps> = ({
     description: ''
   });
 
-  const { frames, isProcessing, progress: videoProgress, error: videoError, processVideo, reset: resetVideo } = useVideoProcessor();
+  const { frames, processVideo, isProcessing: isExtractingFrames } = useVideoProcessor();
   const [isGeneratingScene, setIsGeneratingScene] = useState(false);
   const [sceneProgress, setSceneProgress] = useState(0);
   const [generatedVideo, setGeneratedVideo] = useState<string | null>(null);
@@ -71,13 +71,9 @@ export const NanoBananaStudio: React.FC<NanoBananaStudioProps> = ({
 
   // Propagate progress and error to parent
   useEffect(() => {
-    const totalProgress = Math.max(videoProgress, sceneProgress);
+    const totalProgress = Math.max(sceneProgress);
     onProgress(totalProgress);
-  }, [videoProgress, sceneProgress, onProgress]);
-
-  useEffect(() => {
-    onError(videoError);
-  }, [videoError, onError]);
+  }, [sceneProgress, onProgress]);
 
   const initializeProject = async () => {
     try {
@@ -131,16 +127,7 @@ export const NanoBananaStudio: React.FC<NanoBananaStudioProps> = ({
     setShowTrimmer(false);
     
     try {
-      const result = await processVideo(
-        currentProject.id,
-        file,
-        1, // frames per second
-        { startTime, endTime }
-      );
-      
-      if (result) {
-        console.log('Video processed successfully:', result);
-      }
+      await processVideo(file, 1, { startTime, endTime });
     } catch (err: any) {
       console.error('Error processing video:', err);
       onError(err.message);
@@ -224,18 +211,17 @@ export const NanoBananaStudio: React.FC<NanoBananaStudioProps> = ({
   const reset = () => {
     setGeneratedVideo(null);
     setSceneProgress(0);
-    resetVideo();
   };
 
   // Show video upload if no frames and no trimmer
-  if (!frames.length && !showTrimmer && !isProcessing) {
+  if (!frames.length && !showTrimmer && !isExtractingFrames) {
     return (
       <div className="flex items-center justify-center min-h-[600px]">
         <VideoUpload 
           onVideoSelect={handleVideoSelect}
-          isProcessing={isProcessing}
-          progress={videoProgress}
-          error={videoError}
+          isProcessing={isExtractingFrames}
+          progress={0}
+          error={null}
         />
       </div>
     );
@@ -331,7 +317,6 @@ export const NanoBananaStudio: React.FC<NanoBananaStudioProps> = ({
               onClick={() => {
                 setSelectedVideo(null);
                 setShowTrimmer(false);
-                resetVideo();
               }}
               className="w-full"
             >

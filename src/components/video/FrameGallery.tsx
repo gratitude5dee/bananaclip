@@ -2,15 +2,15 @@ import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Image as ImageIcon, Edit, Play } from 'lucide-react';
-import { VideoFrame } from '@/hooks/useVideoProcessor';
+import { Image as ImageIcon, Edit } from 'lucide-react';
+import type { Frame } from '@/types/video-editor';
 
 interface FrameGalleryProps {
-  frames: VideoFrame[];
+  frames: Frame[];
   selectedFrameIndex: number | null;
   onFrameSelect: (index: number) => void;
   onEditFrame?: (index: number) => void;
-  editedFrames?: Map<number, VideoFrame>;
+  editedFrames?: Map<number, Frame>;
 }
 
 export const FrameGallery: React.FC<FrameGalleryProps> = ({
@@ -70,11 +70,6 @@ export const FrameGallery: React.FC<FrameGalleryProps> = ({
                   {index + 1}
                 </div>
                 
-                {/* Timestamp */}
-                <div className="absolute top-1 left-1 bg-black/70 text-white text-xs px-1.5 py-0.5 rounded">
-                  {Math.floor(frame.timestamp)}s
-                </div>
-                
                 {/* Edited badge */}
                 {isEdited && (
                   <Badge 
@@ -119,7 +114,6 @@ export const FrameGallery: React.FC<FrameGalleryProps> = ({
           <div className="mt-6 p-4 bg-muted/50 rounded-lg">
             <h4 className="font-medium mb-2">Frame {selectedFrameIndex + 1} Selected</h4>
             <div className="text-sm text-muted-foreground space-y-1">
-              <p>Timestamp: {Math.floor(frames[selectedFrameIndex].timestamp)}s</p>
               <p>Format: {frames[selectedFrameIndex].mimeType}</p>
               {editedFrames.has(selectedFrameIndex) && (
                 <Badge variant="outline" className="text-accent">
