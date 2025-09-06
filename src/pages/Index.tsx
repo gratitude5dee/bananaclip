@@ -86,7 +86,7 @@ const Index = () => {
           <TabsList className="grid w-full max-w-md grid-cols-2">
             <TabsTrigger value="nano" className="flex items-center gap-2">
               <Sparkles className="h-4 w-4" />
-              Nano Banana
+              BananaClip
             </TabsTrigger>
             <TabsTrigger value="ad" className="flex items-center gap-2">
               <Target className="h-4 w-4" />
