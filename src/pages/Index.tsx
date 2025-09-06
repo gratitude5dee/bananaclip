@@ -83,7 +83,7 @@ const Index = () => {
       {/* Tabs Navigation */}
       <div className="mx-auto w-full max-w-7xl px-4 pt-6">
         <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as StudioTab)}>
-          <TabsList className="grid w-full max-w-md grid-cols-2">
+          <TabsList className="grid w-full max-w-md grid-cols-2 mx-auto">
             <TabsTrigger value="nano" className="flex items-center gap-2">
               <Sparkles className="h-4 w-4" />
               BananaClip
