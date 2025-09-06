@@ -12,9 +12,11 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Target, Sparkles, Download, Copy, Info, Hash, Clock } from 'lucide-react';
+import { Target, Sparkles, Download, Copy, Info, Hash, Clock, Palette, Camera } from 'lucide-react';
 import { useAdBanana } from '@/hooks/useAdBanana';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { DrawingCanvas } from '@/components/ui/drawing-canvas';
+import { ImageUploadGrid } from '@/components/ui/image-upload-grid';
 
 interface AdBananaStudioProps {
   projectState: ProjectState;
@@ -23,6 +25,22 @@ interface AdBananaStudioProps {
 }
 
 export function AdBananaStudio({ projectState, onProgress, onError }: AdBananaStudioProps) {
+  // Scene description form state
+  const [sceneDescription, setSceneDescription] = useState({
+    setting: '',
+    subjects: '',
+    composition: '',
+    environment: '',
+    lighting: '',
+    focalPoints: '',
+    mood: '',
+  });
+  
+  // Visual assets state
+  const [canvasData, setCanvasData] = useState<string>('');
+  const [referenceImages, setReferenceImages] = useState<(File | null)[]>([]);
+  
+  // Generation settings
   const [brief, setBrief] = useState<Partial<AdBrief>>({
     platform: 'tiktok',
     objective: 'awareness',
@@ -52,21 +70,35 @@ export function AdBananaStudio({ projectState, onProgress, onError }: AdBananaSt
   };
 
   const handleGenerate = async () => {
-    if (brief.brand && brief.product && brief.valueProp && brief.audience) {
-      const fullBrief: AdBrief = {
-        brand: brief.brand!,
-        product: brief.product!,
-        valueProp: brief.valueProp!,
-        audience: brief.audience!,
-        objective: brief.objective || 'awareness',
-        platform: brief.platform || 'tiktok',
-        durationSec: brief.durationSec || 15,
-        briefContext: brief.briefContext,
-        sensitiveClaims: brief.sensitiveClaims || false,
-      };
+    // Create a brief from scene description
+    const contextDescription = `
+Scene Setting: ${sceneDescription.setting}
+Subjects: ${sceneDescription.subjects}
+Composition: ${sceneDescription.composition}
+Environment: ${sceneDescription.environment}
+Lighting: ${sceneDescription.lighting}
+Focal Points: ${sceneDescription.focalPoints}
+Mood: ${sceneDescription.mood}
 
-      await generateAdPackage({ brief: fullBrief, variantCount });
-    }
+Visual Assets:
+- Hand-drawn concept sketch: ${canvasData ? 'Included' : 'None'}
+- Reference images: ${referenceImages.filter(img => img).length} uploaded
+    `.trim();
+
+    // Use scene description as the brief context with minimal required fields
+    const fullBrief: AdBrief = {
+      brand: sceneDescription.setting || 'Creative Brief',
+      product: sceneDescription.subjects || 'Visual Concept',
+      valueProp: sceneDescription.mood || 'Engaging Creative',
+      audience: 'Target Audience',
+      objective: brief.objective || 'awareness',
+      platform: brief.platform || 'tiktok',
+      durationSec: brief.durationSec || 15,
+      briefContext: contextDescription,
+      sensitiveClaims: brief.sensitiveClaims || false,
+    };
+
+    await generateAdPackage({ brief: fullBrief, variantCount });
   };
 
   const handleExportJSON = () => {
@@ -89,96 +121,162 @@ export function AdBananaStudio({ projectState, onProgress, onError }: AdBananaSt
   const platformConstraints = PLATFORM_CONSTRAINTS[currentPlatform];
 
   return (
-    <div className="space-y-6">
-      {/* Brief Configuration */}
-      <Card className="dark-surface">
+    <div className="min-h-screen bg-gradient-to-br from-background via-muted/10 to-background/80 space-y-8">
+      {/* Header */}
+      <div className="bg-card/50 backdrop-blur-lg border border-border/50 rounded-2xl p-6 mx-4 mt-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-gradient-to-br from-primary to-accent rounded-xl flex items-center justify-center text-2xl">
+              🍌
+            </div>
+            <div>
+              <h1 className="text-2xl font-display text-foreground">AdBanana</h1>
+              <p className="text-sm text-muted-foreground">Creative Brief Studio</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 px-4">
+        {/* Visual Concept Sketch */}
+        <Card className="bg-card/50 backdrop-blur-lg border border-border/50 rounded-2xl overflow-hidden">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <div className="w-1 h-6 bg-gradient-to-b from-primary to-accent rounded-full"></div>
+              <Palette className="h-5 w-5 text-primary" />
+              Visual Concept Sketch
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="h-96 bg-muted/20 border-2 border-dashed border-primary/30 rounded-xl overflow-hidden">
+              <DrawingCanvas 
+                onChange={setCanvasData}
+                className="w-full h-full"
+              />
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Reference Images */}
+        <Card className="bg-card/50 backdrop-blur-lg border border-border/50 rounded-2xl">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <div className="w-1 h-6 bg-gradient-to-b from-primary to-accent rounded-full"></div>
+              <Camera className="h-5 w-5 text-primary" />
+              Reference Images
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ImageUploadGrid 
+              maxImages={5}
+              onChange={setReferenceImages}
+            />
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Scene Description Form */}
+      <Card className="bg-card/50 backdrop-blur-lg border border-border/50 rounded-2xl mx-4">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Target className="h-5 w-5 brand-pink" />
-            Brand & Brief
-            <Tooltip>
-              <TooltipTrigger>
-                <Info className="h-4 w-4 text-muted-foreground" />
-              </TooltipTrigger>
-              <TooltipContent>
-                <p className="max-w-xs text-sm">
-                  AdBanana uses the global Banana Studio prompt context to generate 
-                  platform-optimized ad creatives with proper vocabulary and constraints.
-                </p>
-              </TooltipContent>
-            </Tooltip>
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <div className="w-1 h-6 bg-gradient-to-b from-primary to-accent rounded-full"></div>
+            <Target className="h-5 w-5 text-primary" />
+            Scene Description
           </CardTitle>
-          <CardDescription>
-            Configure your brand details and campaign objectives
-          </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid md:grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="brand">Brand Name</Label>
+        <CardContent className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-2">
+              <Label htmlFor="setting" className="text-sm font-medium text-muted-foreground">Setting</Label>
               <Input
-                id="brand"
-                placeholder="Acme"
-                value={brief.brand || ''}
-                onChange={(e) => setBrief(prev => ({ ...prev, brand: e.target.value }))}
+                id="setting"
+                placeholder="e.g., Grand study of an opulent mansion"
+                value={sceneDescription.setting}
+                onChange={(e) => setSceneDescription(prev => ({ ...prev, setting: e.target.value }))}
+                className="bg-background/50 border-border/50 focus:border-primary/50"
               />
             </div>
-            <div>
-              <Label htmlFor="product">Product Name</Label>
+
+            <div className="space-y-2">
+              <Label htmlFor="subjects" className="text-sm font-medium text-muted-foreground">Subjects</Label>
               <Input
-                id="product"
-                placeholder="NanoCam"
-                value={brief.product || ''}
-                onChange={(e) => setBrief(prev => ({ ...prev, product: e.target.value }))}
+                id="subjects"
+                placeholder="e.g., Three men with center figure prominently featured"
+                value={sceneDescription.subjects}
+                onChange={(e) => setSceneDescription(prev => ({ ...prev, subjects: e.target.value }))}
+                className="bg-background/50 border-border/50 focus:border-primary/50"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="lighting" className="text-sm font-medium text-muted-foreground">Lighting</Label>
+              <Input
+                id="lighting"
+                placeholder="e.g., Dramatic afternoon light streaming through tall windows"
+                value={sceneDescription.lighting}
+                onChange={(e) => setSceneDescription(prev => ({ ...prev, lighting: e.target.value }))}
+                className="bg-background/50 border-border/50 focus:border-primary/50"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="focalPoints" className="text-sm font-medium text-muted-foreground">Focal Points</Label>
+              <Input
+                id="focalPoints"
+                placeholder="Key elements that draw attention"
+                value={sceneDescription.focalPoints}
+                onChange={(e) => setSceneDescription(prev => ({ ...prev, focalPoints: e.target.value }))}
+                className="bg-background/50 border-border/50 focus:border-primary/50"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="mood" className="text-sm font-medium text-muted-foreground">Mood</Label>
+              <Input
+                id="mood"
+                placeholder="e.g., Bold confidence and dynamic energy"
+                value={sceneDescription.mood}
+                onChange={(e) => setSceneDescription(prev => ({ ...prev, mood: e.target.value }))}
+                className="bg-background/50 border-border/50 focus:border-primary/50"
               />
             </div>
           </div>
 
-          <div>
-            <Label htmlFor="value-prop">Value Proposition</Label>
-            <Input
-              id="value-prop"
-              placeholder="4K pocket camera for creators"
-              value={brief.valueProp || ''}
-              onChange={(e) => setBrief(prev => ({ ...prev, valueProp: e.target.value }))}
-            />
-          </div>
-
-          <div>
-            <Label htmlFor="audience">Target Audience</Label>
-            <Input
-              id="audience"
-              placeholder="Content creators, photographers, filmmakers"
-              value={brief.audience || ''}
-              onChange={(e) => setBrief(prev => ({ ...prev, audience: e.target.value }))}
-            />
-          </div>
-
-          <div className="grid md:grid-cols-3 gap-4">
-            <div>
-              <Label>Objective</Label>
-              <Select
-                value={brief.objective}
-                onValueChange={(value: Objective) => setBrief(prev => ({ ...prev, objective: value }))}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="awareness">Awareness</SelectItem>
-                  <SelectItem value="traffic">Traffic</SelectItem>
-                  <SelectItem value="conversion">Conversion</SelectItem>
-                </SelectContent>
-              </Select>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-2">
+              <Label htmlFor="composition" className="text-sm font-medium text-muted-foreground">Composition</Label>
+              <Textarea
+                id="composition"
+                placeholder="Describe the arrangement and positioning of elements"
+                value={sceneDescription.composition}
+                onChange={(e) => setSceneDescription(prev => ({ ...prev, composition: e.target.value }))}
+                className="bg-background/50 border-border/50 focus:border-primary/50 min-h-[80px]"
+              />
             </div>
 
+            <div className="space-y-2">
+              <Label htmlFor="environment" className="text-sm font-medium text-muted-foreground">Environment</Label>
+              <Textarea
+                id="environment"
+                placeholder="Describe the surroundings and atmosphere"
+                value={sceneDescription.environment}
+                onChange={(e) => setSceneDescription(prev => ({ ...prev, environment: e.target.value }))}
+                className="bg-background/50 border-border/50 focus:border-primary/50 min-h-[80px]"
+              />
+            </div>
+          </div>
+
+          {/* Platform & Generation Settings */}
+          <Separator className="border-border/50" />
+          
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div>
-              <Label>Platform</Label>
+              <Label className="text-sm font-medium text-muted-foreground">Platform</Label>
               <Select
                 value={brief.platform}
                 onValueChange={handlePlatformChange}
               >
-                <SelectTrigger>
+                <SelectTrigger className="bg-background/50 border-border/50">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -190,12 +288,29 @@ export function AdBananaStudio({ projectState, onProgress, onError }: AdBananaSt
             </div>
 
             <div>
-              <Label>Duration</Label>
+              <Label className="text-sm font-medium text-muted-foreground">Objective</Label>
+              <Select
+                value={brief.objective}
+                onValueChange={(value: Objective) => setBrief(prev => ({ ...prev, objective: value }))}
+              >
+                <SelectTrigger className="bg-background/50 border-border/50">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="awareness">Awareness</SelectItem>
+                  <SelectItem value="traffic">Traffic</SelectItem>
+                  <SelectItem value="conversion">Conversion</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <Label className="text-sm font-medium text-muted-foreground">Duration</Label>
               <Select
                 value={brief.durationSec?.toString()}
                 onValueChange={(value) => setBrief(prev => ({ ...prev, durationSec: parseInt(value) }))}
               >
-                <SelectTrigger>
+                <SelectTrigger className="bg-background/50 border-border/50">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -207,50 +322,14 @@ export function AdBananaStudio({ projectState, onProgress, onError }: AdBananaSt
                 </SelectContent>
               </Select>
             </div>
-          </div>
 
-          <div className="flex items-center space-x-2">
-            <Switch
-              id="sensitive-claims"
-              checked={brief.sensitiveClaims || false}
-              onCheckedChange={(checked) => setBrief(prev => ({ ...prev, sensitiveClaims: checked }))}
-            />
-            <Label htmlFor="sensitive-claims">Sensitive Claims (requires compliance review)</Label>
-          </div>
-
-          <div>
-            <Label htmlFor="brief-context">Brief Context</Label>
-            <Textarea
-              id="brief-context"
-              placeholder="Add any additional brand brief, campaign details, or specific requirements..."
-              value={brief.briefContext || ''}
-              onChange={(e) => setBrief(prev => ({ ...prev, briefContext: e.target.value }))}
-              rows={4}
-            />
-            <div className="text-xs text-muted-foreground mt-1">
-              This context will be appended to the global Banana Studio prompt specification
-            </div>
-          </div>
-
-          <Alert>
-            <Info className="h-4 w-4" />
-            <AlertDescription>
-              <strong>Platform Optimization:</strong> {currentPlatform.charAt(0).toUpperCase() + currentPlatform.slice(1)} 
-              • Max caption: {platformConstraints.maxCaptionLength} chars 
-              • Safe area: {Math.round(platformConstraints.safeAreaPercent * 100)}%
-            </AlertDescription>
-          </Alert>
-
-          <Separator />
-
-          <div className="flex gap-4 items-center">
-            <div className="flex-1">
-              <Label>Variants to Generate</Label>
+            <div>
+              <Label className="text-sm font-medium text-muted-foreground">Variants</Label>
               <Select
                 value={variantCount.toString()}
                 onValueChange={(value) => setVariantCount(parseInt(value))}
               >
-                <SelectTrigger className="w-32">
+                <SelectTrigger className="bg-background/50 border-border/50">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -262,14 +341,30 @@ export function AdBananaStudio({ projectState, onProgress, onError }: AdBananaSt
                 </SelectContent>
               </Select>
             </div>
-            
+          </div>
+
+          <div className="flex justify-center gap-4 pt-4">
+            <Button 
+              variant="outline"
+              onClick={() => {
+                console.log('Preview Data:', {
+                  sceneDescription,
+                  canvasData: canvasData ? 'Canvas data available' : 'No sketch',
+                  referenceImages: referenceImages.filter(img => img).length + ' images',
+                });
+              }}
+              className="border-primary/50 text-primary hover:bg-primary/10"
+            >
+              Preview Brief
+            </Button>
             <Button 
               onClick={handleGenerate}
-              disabled={isGenerating || !brief.brand || !brief.product || !brief.valueProp || !brief.audience}
-              className="bg-brand-pink hover:bg-brand-pink/90"
+              disabled={isGenerating || !sceneDescription.setting || !sceneDescription.subjects}
+              className="bg-gradient-to-r from-primary to-accent hover:shadow-lg hover:shadow-primary/25 transition-all duration-300"
+              size="lg"
             >
               <Sparkles className="mr-2 h-4 w-4" />
-              {isGenerating ? 'Generating...' : `Generate ${variantCount} Variant${variantCount > 1 ? 's' : ''}`}
+              {isGenerating ? 'Generating Creative...' : 'Generate Creative'}
             </Button>
           </div>
         </CardContent>
@@ -277,23 +372,24 @@ export function AdBananaStudio({ projectState, onProgress, onError }: AdBananaSt
 
       {/* Results */}
       {result && (
-        <Card className="dark-surface">
+        <Card className="bg-card/50 backdrop-blur-lg border border-border/50 rounded-2xl mx-4 mb-4">
           <CardHeader>
             <CardTitle className="flex items-center justify-between">
               <span className="flex items-center gap-2">
-                <Sparkles className="h-5 w-5 brand-purple" />
+                <div className="w-1 h-6 bg-gradient-to-b from-primary to-accent rounded-full"></div>
+                <Sparkles className="h-5 w-5 text-primary" />
                 Generated Ad Package
               </span>
               <div className="flex gap-2">
-                <Button onClick={handleExportJSON} variant="outline" size="sm">
+                <Button onClick={handleExportJSON} variant="outline" size="sm" className="border-border/50 hover:bg-background/80">
                   <Download className="mr-2 h-4 w-4" />
                   Export JSON
                 </Button>
-                <Button onClick={handleExportSRT} variant="outline" size="sm">
+                <Button onClick={handleExportSRT} variant="outline" size="sm" className="border-border/50 hover:bg-background/80">
                   <Download className="mr-2 h-4 w-4" />
                   Export SRT
                 </Button>
-                <Button onClick={reset} variant="outline" size="sm">
+                <Button onClick={reset} variant="outline" size="sm" className="border-border/50 hover:bg-background/80">
                   Reset
                 </Button>
               </div>
@@ -301,7 +397,7 @@ export function AdBananaStudio({ projectState, onProgress, onError }: AdBananaSt
           </CardHeader>
           <CardContent>
             <Tabs value={activeResultTab} onValueChange={setActiveResultTab}>
-              <TabsList className="grid w-full grid-cols-4">
+              <TabsList className="grid w-full grid-cols-4 bg-background/50">
                 <TabsTrigger value="script">Base Script</TabsTrigger>
                 <TabsTrigger value="variants">Variants ({result.variants.length})</TabsTrigger>
                 <TabsTrigger value="captions">Captions</TabsTrigger>
