@@ -158,7 +158,7 @@ export function AdBananaStudio({ projectState, onProgress, onError }: AdBananaSt
             {/* Drawing Canvas */}
             <div className="space-y-3">
               <Label className="text-sm font-medium text-muted-foreground">Creative Sketch</Label>
-              <DrawingCanvas onDataChange={setCanvasData} />
+              <DrawingCanvas onChange={setCanvasData} />
             </div>
 
             {/* Reference Images */}
@@ -725,12 +725,12 @@ export function AdBananaStudio({ projectState, onProgress, onError }: AdBananaSt
                       <div key={index} className="flex items-start justify-between p-3 bg-muted/30 rounded-lg">
                         <div>
                           <Badge variant="outline" className="mb-2">Beat {index + 1}</Badge>
-                          <p className="text-sm">{beat.content}</p>
+                          <p className="text-sm">{beat.voiceover || beat.onScreenText || 'Content not available'}</p>
                         </div>
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => copyToClipboard(beat.content)}
+                          onClick={() => copyToClipboard(beat.voiceover || beat.onScreenText || '')}
                         >
                           <Copy className="h-4 w-4" />
                         </Button>
@@ -748,11 +748,11 @@ export function AdBananaStudio({ projectState, onProgress, onError }: AdBananaSt
                   </CardHeader>
                   <CardContent>
                     <div className="flex items-start justify-between">
-                      <p className="text-sm font-medium">{result.baseScript.callToAction}</p>
+                      <p className="text-sm font-medium">{result.baseScript.cta}</p>
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => copyToClipboard(result.baseScript.callToAction)}
+                        onClick={() => copyToClipboard(result.baseScript.cta)}
                       >
                         <Copy className="h-4 w-4" />
                       </Button>
@@ -772,51 +772,59 @@ export function AdBananaStudio({ projectState, onProgress, onError }: AdBananaSt
                         </CardTitle>
                       </CardHeader>
                       <CardContent className="space-y-4">
-                        <div>
-                          <h4 className="font-medium mb-2">Hook</h4>
-                          <div className="flex items-start justify-between">
-                            <p className="text-sm">{variant.hook}</p>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => copyToClipboard(variant.hook)}
-                            >
-                              <Copy className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </div>
+                         <div>
+                           <h4 className="font-medium mb-2">Hook</h4>
+                           <div className="flex items-start justify-between">
+                             <p className="text-sm">{variant.script.hook}</p>
+                             <Button
+                               variant="ghost"
+                               size="sm"
+                               onClick={() => copyToClipboard(variant.script.hook)}
+                             >
+                               <Copy className="h-4 w-4" />
+                             </Button>
+                           </div>
+                         </div>
 
-                        <div>
-                          <h4 className="font-medium mb-2">Call to Action</h4>
-                          <div className="flex items-start justify-between">
-                            <p className="text-sm">{variant.callToAction}</p>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => copyToClipboard(variant.callToAction)}
-                            >
-                              <Copy className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </div>
+                         <div>
+                           <h4 className="font-medium mb-2">Call to Action</h4>
+                           <div className="flex items-start justify-between">
+                             <p className="text-sm">{variant.script.cta}</p>
+                             <Button
+                               variant="ghost"
+                               size="sm"
+                               onClick={() => copyToClipboard(variant.script.cta)}
+                             >
+                               <Copy className="h-4 w-4" />
+                             </Button>
+                           </div>
+                         </div>
 
-                        <div>
-                          <h4 className="font-medium mb-2">Key Messages</h4>
-                          <div className="space-y-2">
-                            {variant.keyMessages.map((message, msgIndex) => (
-                              <div key={msgIndex} className="flex items-start justify-between p-2 bg-muted/30 rounded">
-                                <p className="text-sm">{message}</p>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => copyToClipboard(message)}
-                                >
-                                  <Copy className="h-4 w-4" />
-                                </Button>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
+                         <div>
+                           <h4 className="font-medium mb-2">Platform Optimized</h4>
+                           <div className="space-y-2">
+                             <div className="flex items-start justify-between p-2 bg-muted/30 rounded">
+                               <p className="text-sm">{variant.hookRewrite || 'Hook rewrite not available'}</p>
+                               <Button
+                                 variant="ghost"
+                                 size="sm"
+                                 onClick={() => copyToClipboard(variant.hookRewrite || '')}
+                               >
+                                 <Copy className="h-4 w-4" />
+                               </Button>
+                             </div>
+                             <div className="flex items-start justify-between p-2 bg-muted/30 rounded">
+                               <p className="text-sm">{variant.ctaRewrite || 'CTA rewrite not available'}</p>
+                               <Button
+                                 variant="ghost"
+                                 size="sm"
+                                 onClick={() => copyToClipboard(variant.ctaRewrite || '')}
+                               >
+                                 <Copy className="h-4 w-4" />
+                               </Button>
+                             </div>
+                           </div>
+                         </div>
                       </CardContent>
                     </Card>
                   ))}
@@ -825,27 +833,25 @@ export function AdBananaStudio({ projectState, onProgress, onError }: AdBananaSt
 
               <TabsContent value="captions" className="space-y-4">
                 <div className="space-y-4">
-                  {result.baseScript.captions.map((caption, index) => (
-                    <Card key={index}>
-                      <CardContent className="pt-6">
-                        <div className="flex items-start justify-between">
-                          <div className="flex-1">
-                            <Badge variant="outline" className="mb-2">
-                              {caption.startTime}s - {caption.endTime}s
-                            </Badge>
-                            <p className="text-sm">{caption.text}</p>
-                          </div>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => copyToClipboard(caption.text)}
-                          >
-                            <Copy className="h-4 w-4" />
-                          </Button>
+                  <Card>
+                    <CardContent className="pt-6">
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <Badge variant="outline" className="mb-2">
+                            Captions
+                          </Badge>
+                          <p className="text-sm">{result.baseScript.captions}</p>
                         </div>
-                      </CardContent>
-                    </Card>
-                  ))}
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => copyToClipboard(result.baseScript.captions)}
+                        >
+                          <Copy className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
                 </div>
               </TabsContent>
 
@@ -858,28 +864,35 @@ export function AdBananaStudio({ projectState, onProgress, onError }: AdBananaSt
                 </Alert>
                 
                 <div className="space-y-4">
-                  {result.complianceNotes.map((note, index) => (
-                    <Card key={index}>
-                      <CardContent className="pt-6">
-                        <div className="flex items-start justify-between">
-                          <div className="flex-1">
-                            <Badge variant={note.severity === 'high' ? 'destructive' : note.severity === 'medium' ? 'default' : 'secondary'} className="mb-2">
-                              {note.severity.toUpperCase()} - {note.category}
-                            </Badge>
-                            <p className="text-sm">{note.issue}</p>
-                            <p className="text-xs text-muted-foreground mt-1">{note.recommendation}</p>
+                  {Array.isArray(result.baseScript.complianceNotes) ? 
+                    result.baseScript.complianceNotes.map((note, index) => (
+                      <Card key={index}>
+                        <CardContent className="pt-6">
+                          <div className="flex items-start justify-between">
+                            <div className="flex-1">
+                              <Badge variant="secondary" className="mb-2">
+                                Compliance Note {index + 1}
+                              </Badge>
+                              <p className="text-sm">{note}</p>
+                            </div>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => copyToClipboard(note)}
+                            >
+                              <Copy className="h-4 w-4" />
+                            </Button>
                           </div>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => copyToClipboard(`${note.issue}\n\nRecommendation: ${note.recommendation}`)}
-                          >
-                            <Copy className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
+                        </CardContent>
+                      </Card>
+                    )) : (
+                      <Card>
+                        <CardContent className="pt-6">
+                          <p className="text-sm text-muted-foreground">No compliance notes available</p>
+                        </CardContent>
+                      </Card>
+                    )
+                  }
                 </div>
               </TabsContent>
             </Tabs>
