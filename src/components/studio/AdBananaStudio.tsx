@@ -1,12 +1,11 @@
 import React, { useState } from 'react';
-import { ProjectState, AdBrief, Platform, Objective, PLATFORM_CONSTRAINTS } from '@/lib/schemas';
+import { ProjectState, AdBrief } from '@/lib/schemas';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
@@ -45,14 +44,7 @@ export function AdBananaStudio({ projectState, onProgress, onError }: AdBananaSt
   const [lastGenerationTime, setLastGenerationTime] = useState(0);
   const [generationError, setGenerationError] = useState<string | null>(null);
   
-  // Generation settings
-  const [brief, setBrief] = useState<Partial<AdBrief>>({
-    platform: 'tiktok',
-    objective: 'awareness',
-    durationSec: 15,
-    sensitiveClaims: false,
-  });
-  const [variantCount, setVariantCount] = useState(3);
+  // Simplified generation settings
   const [activeResultTab, setActiveResultTab] = useState('script');
 
   const { generateAdPackage, isGenerating, progress, error, result, exportToJSON, exportToSRT, reset } = useAdBanana();
@@ -66,13 +58,7 @@ export function AdBananaStudio({ projectState, onProgress, onError }: AdBananaSt
     onError(error);
   }, [error, onError]);
 
-  const handlePlatformChange = (platform: Platform) => {
-    setBrief(prev => ({
-      ...prev,
-      platform,
-      durationSec: PLATFORM_CONSTRAINTS[platform].recommendedDurations[0],
-    }));
-  };
+  // Removed complex platform configuration
 
   const handleGenerate = async () => {
     // Rate limiting: prevent rapid API calls  
@@ -122,20 +108,20 @@ Visual Assets:
 - Generated AI images: ${images.length} created with Gemini NanoBanana
       `.trim();
 
-      // Use scene description as the brief context with minimal required fields
+      // Use scene description as the brief context with simplified fields
       const fullBrief: AdBrief = {
         brand: sceneDescription.setting || 'Creative Brief',
         product: sceneDescription.subjects || 'Visual Concept',
         valueProp: sceneDescription.mood || 'Engaging Creative',
-        audience: 'Target Audience',
-        objective: brief.objective || 'awareness',
-        platform: brief.platform || 'tiktok',
-        durationSec: brief.durationSec || 15,
+        audience: 'Creative Audience',
+        objective: 'awareness' as const,
+        platform: 'tiktok' as const,
+        durationSec: 30,
         briefContext: contextDescription,
-        sensitiveClaims: brief.sensitiveClaims || false,
+        sensitiveClaims: false,
       };
 
-      await generateAdPackage({ brief: fullBrief, variantCount });
+      await generateAdPackage({ brief: fullBrief, variantCount: 2 });
     } catch (error) {
       console.error('Error during generation:', error);
       const errorMessage = error instanceof Error ? error.message : 'Failed to generate content';
@@ -161,8 +147,7 @@ Visual Assets:
     navigator.clipboard.writeText(text);
   };
 
-  const currentPlatform = brief.platform || 'tiktok';
-  const platformConstraints = PLATFORM_CONSTRAINTS[currentPlatform];
+  // Removed platform constraints
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-muted/10 to-background/80 space-y-8">
@@ -571,7 +556,7 @@ Visual Assets:
                     <CardTitle className="flex items-center justify-between">
                       <span>Full Caption</span>
                       <Badge variant="outline">
-                        {result.baseScript.captions.length}/{platformConstraints.maxCaptionLength} chars
+                        {result.baseScript.captions.length}/2200 chars
                       </Badge>
                     </CardTitle>
                   </CardHeader>
