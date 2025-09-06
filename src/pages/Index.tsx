@@ -92,135 +92,178 @@ const Index = () => {
       {/* Main Content */}
       <div className="mx-auto w-full max-w-7xl px-4 pt-6">
         {!currentProject ? (
-          <>
-            {/* Hero Section */}
-            <div className="gradient-hero mb-8">
-              <div className="container mx-auto px-4 py-16">
-                <div className="text-center mb-12">
-                  <h1 className="text-4xl md:text-5xl font-display text-white mb-4">
-                    <span className="text-white">Nano-Banana</span>{' '}
-                    <span className="text-white/90">Shorts Editor</span>
-                  </h1>
-                  <p className="text-white/80 text-lg max-w-2xl mx-auto mb-8">
-                    Transform your ideas into engaging short-form content with AI-powered video creation
-                  </p>
-                  <Button 
+          <div className="container mx-auto px-4 py-8">
+            {/* Choose Template Section */}
+            <div className="text-center mb-12">
+              <h1 className="text-4xl font-bold text-foreground mb-4">Choose a Template</h1>
+              <p className="text-muted-foreground text-lg mb-12">
+                Get started quickly with our pre-configured templates
+              </p>
+            </div>
+
+            {/* Template Grid */}
+            <div className="max-w-6xl mx-auto">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {[
+                  {
+                    id: 'video-translator',
+                    title: 'Video Translator',
+                    description: 'Translate videos to different languages with AI dubbing',
+                    icon: '🎥',
+                    popular: true,
+                  },
+                  {
+                    id: 'long-to-shorts',
+                    title: 'Long Video to Shorts',
+                    description: 'Transform long-form content into engaging shorts',
+                    icon: '✂️',
+                    popular: true,
+                  },
+                  {
+                    id: 'script-to-video',
+                    title: 'Script to Video',
+                    description: 'Generate videos from text scripts using AI',
+                    icon: '📄',
+                    popular: false,
+                  },
+                  {
+                    id: 'ai-enhancement',
+                    title: 'AI Enhancement',
+                    description: 'Enhance existing videos with AI effects',
+                    icon: '🪄',
+                    popular: false,
+                  },
+                  {
+                    id: 'upload-edit',
+                    title: 'Upload & Edit',
+                    description: 'Upload your media and start editing',
+                    icon: '📤',
+                    popular: false,
+                  },
+                  {
+                    id: 'creative-studio',
+                    title: 'Creative Studio',
+                    description: 'Start with a blank canvas for creative projects',
+                    icon: '✨',
+                    popular: false,
+                  },
+                ].map((template) => (
+                  <Card 
+                    key={template.id} 
+                    className="bg-card border-border hover:bg-card/80 transition-all duration-300 cursor-pointer group relative"
                     onClick={() => setShowCreateDialog(true)}
-                    size="lg"
-                    className="bg-white/10 hover:bg-white/20 text-white border-white/20 hover:border-white/30 backdrop-blur-sm hover-glow"
                   >
-                    <Plus className="h-5 w-5 mr-2" />
-                    Create Project
-                  </Button>
-                </div>
-                
-                {/* Project Templates */}
-                <ProjectTemplates onSelectTemplate={() => setShowCreateDialog(true)} />
+                    <CardContent className="p-6">
+                      <div className="flex items-start justify-between mb-4">
+                        <div className="text-3xl mb-4">
+                          {template.id === 'video-translator' && '🎥'}
+                          {template.id === 'long-to-shorts' && '✂️'}
+                          {template.id === 'script-to-video' && '📄'}
+                          {template.id === 'ai-enhancement' && '🪄'}
+                          {template.id === 'upload-edit' && '📤'}
+                          {template.id === 'creative-studio' && '✨'}
+                        </div>
+                        {template.popular && (
+                          <span className="px-3 py-1 bg-primary text-primary-foreground text-xs font-medium rounded-full">
+                            Popular
+                          </span>
+                        )}
+                      </div>
+                      
+                      <h3 className="text-foreground font-semibold text-lg mb-2">
+                        {template.title}
+                      </h3>
+                      <p className="text-muted-foreground text-sm mb-6">
+                        {template.description}
+                      </p>
+                      
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="w-full"
+                      >
+                        Use Template
+                      </Button>
+                    </CardContent>
+                  </Card>
+                ))}
               </div>
             </div>
 
             {/* Projects Management Section */}
-            <div className="container mx-auto px-4">
-              {/* Controls Bar */}
-              <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between mb-8">
-                <div className="flex items-center gap-4">
-                  <h2 className="text-2xl font-semibold text-foreground">
-                    Your Projects
-                    {projects.length > 0 && (
+            {projects.length > 0 && (
+              <div className="mt-16">
+                {/* Controls Bar */}
+                <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between mb-8">
+                  <div className="flex items-center gap-4">
+                    <h2 className="text-2xl font-semibold text-foreground">
+                      Your Projects
                       <span className="ml-2 text-sm font-normal text-muted-foreground">
                         ({projects.length} project{projects.length !== 1 ? 's' : ''})
                       </span>
-                    )}
-                  </h2>
-                  <div className="hidden sm:flex items-center gap-2">
-                    <Button variant="ghost" size="sm">
-                      <Grid3X3 className="h-4 w-4" />
-                    </Button>
-                    <Button variant="ghost" size="sm">
-                      <Filter className="h-4 w-4" />
-                    </Button>
-                    <Button variant="ghost" size="sm">
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-                
-                {/* Search */}
-                <div className="relative w-full sm:w-80">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-                  <Input
-                    placeholder="Search projects..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-10 bg-card/50 border-border/50"
-                  />
-                </div>
-              </div>
-
-              {/* Projects Grid */}
-              {isLoading ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                  {Array.from({ length: 8 }).map((_, i) => (
-                    <div key={i} className="animate-fade-in" style={{ animationDelay: `${i * 0.1}s` }}>
-                      <Skeleton className="h-48 w-full rounded-lg mb-3" />
-                      <Skeleton className="h-4 w-3/4 mb-2" />
-                      <Skeleton className="h-3 w-1/2" />
+                    </h2>
+                    <div className="hidden sm:flex items-center gap-2">
+                      <Button variant="ghost" size="sm">
+                        <Grid3X3 className="h-4 w-4" />
+                      </Button>
+                      <Button variant="ghost" size="sm">
+                        <Filter className="h-4 w-4" />
+                      </Button>
+                      <Button variant="ghost" size="sm">
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
                     </div>
-                  ))}
-                </div>
-              ) : (() => {
-                const filteredProjects = projects.filter(project =>
-                  project.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                  project.description?.toLowerCase().includes(searchQuery.toLowerCase())
-                );
-                
-                return filteredProjects.length === 0 ? (
-                  <div className="text-center py-16">
-                    {projects.length === 0 ? (
-                      <div className="animate-fade-in">
-                        <div className="mx-auto w-20 h-20 gradient-card rounded-full flex items-center justify-center mb-6 shadow-card">
-                          <Plus className="h-10 w-10 text-primary" />
-                        </div>
-                        <h3 className="text-xl font-semibold mb-3">No projects yet</h3>
-                        <p className="text-muted-foreground mb-6 max-w-md mx-auto">
-                          Create your first project using one of our templates above or start from scratch
-                        </p>
-                        <Button onClick={() => setShowCreateDialog(true)} className="hover-glow">
-                          <Plus className="h-4 w-4 mr-2" />
-                          Create Your First Project
-                        </Button>
-                      </div>
-                    ) : (
-                      <div className="animate-fade-in">
-                        <div className="mx-auto w-16 h-16 bg-muted/20 rounded-full flex items-center justify-center mb-4">
-                          <Search className="h-8 w-8 text-muted-foreground" />
-                        </div>
-                        <h3 className="text-lg font-semibold mb-2">No projects found</h3>
-                        <p className="text-muted-foreground">
-                          Try adjusting your search query or create a new project
-                        </p>
-                      </div>
-                    )}
                   </div>
-                ) : (
+                  
+                  {/* Search */}
+                  <div className="relative w-full sm:w-80">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                    <Input
+                      placeholder="Search projects..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="pl-10 bg-card/50 border-border/50"
+                    />
+                  </div>
+                </div>
+
+                {/* Projects Grid */}
+                {isLoading ? (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                    {filteredProjects.map((project, index) => (
-                      <div 
-                        key={project.id} 
-                        className="animate-fade-in hover-lift" 
-                        style={{ animationDelay: `${index * 0.1}s` }}
-                      >
-                        <ProjectCard
-                          project={project}
-                          onSelect={() => setCurrentProject(project.id)}
-                        />
+                    {Array.from({ length: 8 }).map((_, i) => (
+                      <div key={i} className="animate-fade-in" style={{ animationDelay: `${i * 0.1}s` }}>
+                        <Skeleton className="h-48 w-full rounded-lg mb-3" />
+                        <Skeleton className="h-4 w-3/4 mb-2" />
+                        <Skeleton className="h-3 w-1/2" />
                       </div>
                     ))}
                   </div>
-                );
-              })()}
-            </div>
-          </>
+                ) : (() => {
+                  const filteredProjects = projects.filter(project =>
+                    project.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                    project.description?.toLowerCase().includes(searchQuery.toLowerCase())
+                  );
+                  
+                  return (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                      {filteredProjects.map((project, index) => (
+                        <div 
+                          key={project.id} 
+                          className="animate-fade-in hover-lift" 
+                          style={{ animationDelay: `${index * 0.1}s` }}
+                        >
+                          <ProjectCard
+                            project={project}
+                            onSelect={() => setCurrentProject(project.id)}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  );
+                })()}
+              </div>
+            )}
+          </div>
         ) : (
           <>
             {/* Tabs Navigation */}
