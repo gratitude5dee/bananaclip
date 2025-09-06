@@ -107,7 +107,7 @@ const Index = () => {
                 {[
                   {
                     id: 'video-translator',
-                    title: 'Video Translator',
+                    title: 'AdBanana',
                     description: 'Translate videos to different languages with AI dubbing',
                     icon: '🎥',
                     popular: true,
