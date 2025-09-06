@@ -15,6 +15,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Target, Sparkles, Download, Copy, Info, Hash, Clock, Palette, Camera, Zap, Play } from 'lucide-react';
 import { useAdBanana } from '@/hooks/useAdBanana';
 import { useFalUpscale } from '@/hooks/useFalUpscale';
+import { useBatchVideoGeneration } from '@/hooks/useBatchVideoGeneration';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { DrawingCanvas } from '@/components/ui/drawing-canvas';
 import { ImageUploadGrid } from '@/components/ui/image-upload-grid';
@@ -62,6 +63,7 @@ export function AdBananaStudio({ projectState, onProgress, onError }: AdBananaSt
 
   const { generateAdPackage, isGenerating, progress, error, result, exportToJSON, exportToSRT, reset } = useAdBanana();
   const { upscaleImage, isUpscaling, progress: upscaleProgress, result: upscaleResult } = useFalUpscale();
+  const { generateAllVideos, isGenerating: isBatchGenerating, progress: batchProgress, generatedVideos } = useBatchVideoGeneration();
 
   // Update global progress/error when local state changes
   React.useEffect(() => {
@@ -148,6 +150,15 @@ Visual Assets:
       setIsGeneratingImages(false);
       onError(errorMessage);
     }
+  };
+
+  const handleGenerateAllVideos = async () => {
+    if (generatedImages.length === 0) {
+      return;
+    }
+
+    const videoPrompt = `${sceneDescription.setting} ${sceneDescription.subjects} ${sceneDescription.mood}`.trim();
+    await generateAllVideos(generatedImages, videoPrompt);
   };
 
   const handleExportJSON = () => {
@@ -358,6 +369,25 @@ Visual Assets:
                 Generated Ad Package
               </span>
               <div className="flex gap-2">
+                <Button 
+                  onClick={handleGenerateAllVideos}
+                  disabled={generatedImages.length === 0 || isBatchGenerating}
+                  variant="default"
+                  size="sm"
+                  className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
+                >
+                  {isBatchGenerating ? (
+                    <>
+                      <div className="w-4 h-4 mr-2 animate-spin border-2 border-white border-t-transparent rounded-full" />
+                      Generating ({batchProgress.completed}/{batchProgress.total})
+                    </>
+                  ) : (
+                    <>
+                      <Play className="w-4 h-4 mr-2" />
+                      Generate All Videos
+                    </>
+                  )}
+                </Button>
                 <Button onClick={handleExportJSON} variant="outline" size="sm" className="border-border/50 hover:bg-background/80">
                   <Download className="mr-2 h-4 w-4" />
                   Export JSON
@@ -374,8 +404,9 @@ Visual Assets:
           </CardHeader>
           <CardContent>
             <Tabs value={activeResultTab} onValueChange={setActiveResultTab}>
-              <TabsList className="grid w-full grid-cols-5 bg-background/50">
+              <TabsList className="grid w-full grid-cols-6 bg-background/50">
                 <TabsTrigger value="images">AI Images ({generatedImages.length})</TabsTrigger>
+                <TabsTrigger value="videos">Videos ({generatedVideos.length})</TabsTrigger>
                 <TabsTrigger value="script">Base Script</TabsTrigger>
                 <TabsTrigger value="variants">Variants ({result.variants.length})</TabsTrigger>
                 <TabsTrigger value="captions">Captions</TabsTrigger>
@@ -678,8 +709,50 @@ Visual Assets:
                     )}
                   </CardContent>
                 </Card>
-              </TabsContent>
-            </Tabs>
+               </TabsContent>
+
+               <TabsContent value="videos" className="space-y-4">
+                 {generatedVideos.length > 0 ? (
+                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                     {generatedVideos.map((video, index) => (
+                       <div key={video.id} className="bg-white/5 rounded-lg p-4 space-y-3">
+                         <div className="aspect-video bg-black rounded-lg overflow-hidden">
+                           <video 
+                             src={video.url} 
+                             controls 
+                             className="w-full h-full object-cover"
+                             poster="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100'%3E%3Crect width='100' height='100' fill='%23000'/%3E%3C/svg%3E"
+                           />
+                         </div>
+                         <div className="space-y-2">
+                           <p className="text-sm text-white/70 line-clamp-2">{video.prompt}</p>
+                           <Button
+                             onClick={() => {
+                               const link = document.createElement('a');
+                               link.href = video.url;
+                               link.download = `generated-video-${index + 1}.mp4`;
+                               link.click();
+                             }}
+                             variant="outline"
+                             size="sm"
+                             className="w-full"
+                           >
+                             <Download className="w-4 h-4 mr-2" />
+                             Download Video
+                           </Button>
+                         </div>
+                       </div>
+                     ))}
+                   </div>
+                 ) : (
+                   <div className="text-center py-8 text-white/60">
+                     <Play className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                     <p>No videos generated yet.</p>
+                     <p className="text-sm">Click "Generate All Videos" to create videos from your images.</p>
+                   </div>
+                 )}
+               </TabsContent>
+             </Tabs>
           </CardContent>
         </Card>
       )}

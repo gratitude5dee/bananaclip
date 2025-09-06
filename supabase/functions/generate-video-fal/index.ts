@@ -27,35 +27,41 @@ serve(async (req) => {
 
     console.log('Starting video generation with prompt:', prompt);
 
-    // Submit request to fal.ai
-    const response = await fetch('https://queue.fal.run/fal-ai/veo3/fast', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Key ${FAL_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
+    // Use fal-ai client properly
+    const { fal } = await import("npm:@fal-ai/client@1.6.2");
+    
+    fal.config({
+      credentials: FAL_KEY
+    });
+
+    // Convert base64 to data URI if not already
+    const imageDataUri = imageBase64.startsWith('data:') 
+      ? imageBase64 
+      : `data:image/jpeg;base64,${imageBase64}`;
+
+    const result = await fal.subscribe("fal-ai/veo3/fast", {
+      input: {
         prompt: prompt,
+        image_url: imageDataUri,
         aspect_ratio: aspectRatio,
         duration: duration,
         enhance_prompt: true,
         auto_fix: true,
         resolution: "720p",
         generate_audio: true
-      }),
+      },
+      logs: true,
+      onQueueUpdate: (update) => {
+        if (update.status === "IN_PROGRESS") {
+          console.log('Generation progress:', update.status);
+        }
+      },
     });
 
-    if (!response.ok) {
-      const errorData = await response.text();
-      console.error('FAL API error:', errorData);
-      throw new Error(`FAL API error: ${response.status} - ${errorData}`);
-    }
-
-    const result = await response.json();
-    console.log('Video generation result:', result);
+    console.log('Video generation completed:', result.data);
 
     return new Response(
-      JSON.stringify(result),
+      JSON.stringify(result.data),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 200 
