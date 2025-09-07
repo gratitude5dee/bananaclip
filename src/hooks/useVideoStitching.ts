@@ -54,11 +54,15 @@ export const useVideoStitching = () => {
         }
       });
 
+      console.log('Supabase function response:', { data, functionError });
+
       if (functionError) {
+        console.error('Function invocation error:', functionError);
         throw new Error(functionError.message);
       }
 
       if (data && data.video) {
+        console.log('Received video data:', data.video);
         setProgress({ status: 'processing', message: 'Uploading stitched video to storage...' });
 
         const stitchedVideoResult: StitchedVideo = {
@@ -66,21 +70,33 @@ export const useVideoStitching = () => {
           url: data.video.url
         };
 
-        // Try to upload to storage
+        console.log('Created stitched video result:', stitchedVideoResult);
+
+        // Always set the stitched video first with external URL
+        setStitchedVideo(stitchedVideoResult);
+
+        // Try to upload to storage as enhancement
         try {
+          console.log('Attempting storage upload...');
           const storageRecord = await uploadGeneratedVideo(
             data.video.url,
             `${projectName}_stitched.mp4`,
             `Stitched video from ${videoUrls.length} individual videos`
           );
-          stitchedVideoResult.storageUrl = storageRecord.storage_url;
-          stitchedVideoResult.storagePath = storageRecord.storage_path;
+          console.log('Storage upload successful:', storageRecord);
+          
+          // Update with storage URLs
+          const updatedResult = {
+            ...stitchedVideoResult,
+            storageUrl: storageRecord.storage_url,
+            storagePath: storageRecord.storage_path
+          };
+          setStitchedVideo(updatedResult);
         } catch (storageError) {
-          console.warn('Failed to upload stitched video to storage:', storageError);
-          // Continue without storage - video still has external URL
+          console.warn('Storage upload failed, continuing with external URL:', storageError);
+          // Video is still available via external URL
         }
 
-        setStitchedVideo(stitchedVideoResult);
         setProgress({ status: 'complete', message: 'Video stitching completed successfully!' });
 
         toast({
@@ -88,9 +104,11 @@ export const useVideoStitching = () => {
           description: "Your combined video is ready for download.",
         });
 
+        console.log('Final stitched video state set');
         return stitchedVideoResult;
       } else {
-        throw new Error('No stitched video data received');
+        console.error('Invalid response structure:', data);
+        throw new Error('No stitched video data received from API');
       }
 
     } catch (error) {

@@ -81,8 +81,18 @@ export function AdBananaStudio({ projectState, onProgress, onError }: AdBananaSt
   }, [isGenerating, progress, isGeneratingImages, onProgress]);
 
   React.useEffect(() => {
-    onError(error || generationError || upscaleError);
-  }, [error, generationError, upscaleError, onError]);
+    onError(error || generationError || upscaleError || stitchError);
+  }, [error, generationError, upscaleError, stitchError, onError]);
+
+  // Debug effect for stitching progress
+  React.useEffect(() => {
+    if (stitchProgress.status !== 'idle') {
+      console.log('Stitch progress:', stitchProgress);
+    }
+    if (stitchedVideo) {
+      console.log('Stitched video available:', stitchedVideo);
+    }
+  }, [stitchProgress, stitchedVideo]);
 
   // Handlers
   const handleGenerate = async () => {
