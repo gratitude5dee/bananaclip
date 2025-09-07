@@ -51,13 +51,13 @@ export function AdBananaStudio({ projectState, onProgress, onError }: AdBananaSt
   const [generationError, setGenerationError] = useState<string | null>(null);
   
   // Generation settings
-  const [adBrief, setAdBrief] = useState({
+  const [adBrief, setAdBrief] = useState<AdBrief>({
     brand: '',
     product: '',
     valueProp: '',
     audience: '',
-    objective: 'awareness' as const,
-    platform: 'tiktok' as const,
+    objective: 'awareness' as Objective,
+    platform: 'tiktok' as Platform,
     durationSec: 30,
     sensitiveClaims: false
   });
@@ -95,7 +95,7 @@ export function AdBananaStudio({ projectState, onProgress, onError }: AdBananaSt
   }, [stitchProgress, stitchedVideo]);
 
   // Handlers
-  const handleGenerate = async () => {
+  const handleGenerateImages = async () => {
     // Rate limiting check (3 seconds)
     const now = Date.now();
     if (now - lastGenerationTime < 3000) {
@@ -113,18 +113,27 @@ export function AdBananaStudio({ projectState, onProgress, onError }: AdBananaSt
       console.log('Generated images:', images);
       setGeneratedImages(images);
       setIsGeneratingImages(false);
-
-      // Then generate ad package
-      if (!adBrief.audience || !adBrief.valueProp) {
-        throw new Error('Please fill in audience and value proposition');
-      }
-
-      await generateAdPackage({ brief: adBrief, variantCount });
     } catch (error) {
       setIsGeneratingImages(false);
       const errorMessage = error instanceof Error ? error.message : 'Failed to generate images';
       setGenerationError(errorMessage);
-      console.error('Error generating:', error);
+      console.error('Error generating images:', error);
+    }
+  };
+
+  const handleGenerateAdPackage = async () => {
+    // Validate ad brief fields only when generating ad package
+    if (!adBrief.audience || !adBrief.valueProp) {
+      setGenerationError('Please fill in audience and value proposition to generate ad package');
+      return;
+    }
+
+    try {
+      await generateAdPackage({ brief: adBrief, variantCount });
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to generate ad package';
+      setGenerationError(errorMessage);
+      console.error('Error generating ad package:', error);
     }
   };
 
@@ -303,7 +312,7 @@ export function AdBananaStudio({ projectState, onProgress, onError }: AdBananaSt
               Preview Brief
             </Button>
             <Button 
-              onClick={handleGenerate}
+              onClick={handleGenerateImages}
               disabled={isGenerating || isGeneratingImages || !sceneDescription.setting || !sceneDescription.subjects}
               className="bg-gradient-to-r from-primary to-accent hover:shadow-lg hover:shadow-primary/25 transition-all duration-300"
               size="lg"
@@ -311,9 +320,7 @@ export function AdBananaStudio({ projectState, onProgress, onError }: AdBananaSt
               <Sparkles className="mr-2 h-4 w-4" />
               {isGeneratingImages 
                 ? 'Generating AI Images...' 
-                : isGenerating 
-                  ? 'Creating Ad Package...' 
-                  : 'Generate Creative with Gemini NanoBanana'}
+                : 'Generate AI Images with Gemini'}
             </Button>
           </div>
         </CardContent>
@@ -546,6 +553,188 @@ export function AdBananaStudio({ projectState, onProgress, onError }: AdBananaSt
                 </Card>
               ))}
             </div>
+
+            {/* Stitched Video Section */}
+            {stitchedVideo && (
+              <div className="mt-8 pt-6 border-t border-border/30">
+                <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                  <Link className="h-5 w-5 text-green-600" />
+                  Final Stitched Video
+                </h3>
+                <Card className="bg-card/30 border-border/30 overflow-hidden max-w-2xl mx-auto">
+                  <div className="relative aspect-video">
+                    <video 
+                      src={stitchedVideo.storageUrl || stitchedVideo.url} 
+                      controls
+                      className="w-full h-full object-cover"
+                    >
+                      Your browser does not support the video tag.
+                    </video>
+                  </div>
+                  <CardContent className="p-4 space-y-3">
+                    <div className="text-sm text-muted-foreground">
+                      Combined video from {batchGeneratedVideos.length} individual scenes
+                    </div>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          const link = document.createElement('a');
+                          link.href = stitchedVideo.storageUrl || stitchedVideo.url;
+                          link.download = 'final-stitched-video.mp4';
+                          link.click();
+                        }}
+                        className="flex-1 border-border/50 hover:bg-background/80"
+                      >
+                        <Download className="h-4 w-4 mr-2" />
+                        Download Final Video
+                      </Button>
+                      {stitchedVideo.storageUrl && (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="border-border/50 hover:bg-background/80"
+                            >
+                              <Cloud className="h-4 w-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p className="text-xs">Stored in Supabase Storage</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Ad Package Generation (Optional) */}
+      {(generatedImages.length > 0 || batchGeneratedVideos.length > 0) && (
+        <Card className="bg-card/50 backdrop-blur-lg border border-border/50 rounded-2xl mx-4">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <div className="w-1 h-6 bg-gradient-to-b from-primary to-accent rounded-full"></div>
+              <Target className="h-5 w-5 text-primary" />
+              Ad Package Generation (Optional)
+            </CardTitle>
+            <CardDescription>
+              Fill out your brand details to generate scripts, captions, and platform-specific variants
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <Label htmlFor="brand" className="text-sm font-medium text-muted-foreground">Brand Name</Label>
+                <Input
+                  id="brand"
+                  placeholder="Your brand name"
+                  value={adBrief.brand}
+                  onChange={(e) => setAdBrief(prev => ({ ...prev, brand: e.target.value }))}
+                  className="bg-background/50 border-border/50 focus:border-primary/50"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="product" className="text-sm font-medium text-muted-foreground">Product/Service</Label>
+                <Input
+                  id="product"
+                  placeholder="What are you advertising?"
+                  value={adBrief.product}
+                  onChange={(e) => setAdBrief(prev => ({ ...prev, product: e.target.value }))}
+                  className="bg-background/50 border-border/50 focus:border-primary/50"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="audience" className="text-sm font-medium text-muted-foreground">Target Audience *</Label>
+              <Textarea
+                id="audience"
+                placeholder="Describe your target audience (demographics, interests, behaviors)"
+                value={adBrief.audience}
+                onChange={(e) => setAdBrief(prev => ({ ...prev, audience: e.target.value }))}
+                className="bg-background/50 border-border/50 focus:border-primary/50 min-h-[80px]"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="valueProp" className="text-sm font-medium text-muted-foreground">Value Proposition *</Label>
+              <Textarea
+                id="valueProp"
+                placeholder="What unique value does your product/service provide?"
+                value={adBrief.valueProp}
+                onChange={(e) => setAdBrief(prev => ({ ...prev, valueProp: e.target.value }))}
+                className="bg-background/50 border-border/50 focus:border-primary/50 min-h-[80px]"
+              />
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="space-y-2">
+                <Label htmlFor="platform" className="text-sm font-medium text-muted-foreground">Platform</Label>
+                <Select value={adBrief.platform} onValueChange={(value: Platform) => setAdBrief(prev => ({ ...prev, platform: value }))}>
+                  <SelectTrigger className="bg-background/50 border-border/50 focus:border-primary/50">
+                    <SelectValue placeholder="Select platform" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="tiktok">TikTok</SelectItem>
+                    <SelectItem value="instagram">Instagram</SelectItem>
+                    <SelectItem value="youtube">YouTube</SelectItem>
+                    <SelectItem value="facebook">Facebook</SelectItem>
+                    <SelectItem value="twitter">Twitter</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="objective" className="text-sm font-medium text-muted-foreground">Campaign Objective</Label>
+                <Select value={adBrief.objective} onValueChange={(value: Objective) => setAdBrief(prev => ({ ...prev, objective: value }))}>
+                  <SelectTrigger className="bg-background/50 border-border/50 focus:border-primary/50">
+                    <SelectValue placeholder="Select objective" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="awareness">Brand Awareness</SelectItem>
+                    <SelectItem value="traffic">Drive Traffic</SelectItem>
+                    <SelectItem value="engagement">Increase Engagement</SelectItem>
+                    <SelectItem value="conversions">Drive Conversions</SelectItem>
+                    <SelectItem value="leads">Generate Leads</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="variants" className="text-sm font-medium text-muted-foreground">Variants</Label>
+                <Select value={variantCount.toString()} onValueChange={(value) => setVariantCount(parseInt(value))}>
+                  <SelectTrigger className="bg-background/50 border-border/50 focus:border-primary/50">
+                    <SelectValue placeholder="Number of variants" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="1">1 Variant</SelectItem>
+                    <SelectItem value="2">2 Variants</SelectItem>
+                    <SelectItem value="3">3 Variants</SelectItem>
+                    <SelectItem value="5">5 Variants</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="flex justify-center pt-4">
+              <Button 
+                onClick={handleGenerateAdPackage}
+                disabled={isGenerating || !adBrief.audience || !adBrief.valueProp}
+                className="bg-gradient-to-r from-primary to-accent hover:shadow-lg hover:shadow-primary/25 transition-all duration-300"
+                size="lg"
+              >
+                <Sparkles className="mr-2 h-4 w-4" />
+                {isGenerating ? 'Generating Ad Package...' : 'Generate Ad Package'}
+              </Button>
+            </div>
           </CardContent>
         </Card>
       )}
@@ -577,14 +766,14 @@ export function AdBananaStudio({ projectState, onProgress, onError }: AdBananaSt
           </CardHeader>
           <CardContent>
             <Tabs value={activeResultTab} onValueChange={setActiveResultTab}>
-              <TabsList className="grid w-full grid-cols-6 bg-background/50">
-                <TabsTrigger value="images">AI Images ({generatedImages.length})</TabsTrigger>
-                <TabsTrigger value="videos">Videos ({batchGeneratedVideos.length})</TabsTrigger>
-                <TabsTrigger value="script">Base Script</TabsTrigger>
-                <TabsTrigger value="variants">Variants ({result.variants.length})</TabsTrigger>
-                <TabsTrigger value="captions">Captions</TabsTrigger>
-                <TabsTrigger value="compliance">Compliance</TabsTrigger>
-              </TabsList>
+               <TabsList className="grid w-full grid-cols-6 bg-background/50">
+                 <TabsTrigger value="images">AI Images ({generatedImages.length})</TabsTrigger>
+                 <TabsTrigger value="videos">Videos ({batchGeneratedVideos.length + (stitchedVideo ? 1 : 0)})</TabsTrigger>
+                 <TabsTrigger value="script">Base Script</TabsTrigger>
+                 <TabsTrigger value="variants">Variants ({result.variants.length})</TabsTrigger>
+                 <TabsTrigger value="captions">Captions</TabsTrigger>
+                 <TabsTrigger value="compliance">Compliance</TabsTrigger>
+               </TabsList>
 
               <TabsContent value="images" className="space-y-4">
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
